@@ -327,8 +327,9 @@
       const container = document.getElementById('figure-above');
       container.innerHTML = '';
       const rowsAbove = state.rowsAbove;
+      const categories = state.categories.filter((category) => Number(category.counts?.above || 0) > 0);
 
-      state.categories.forEach((category) => {
+      categories.forEach((category) => {
         const column = document.createElement('div');
         column.className = 'figure__column';
 
