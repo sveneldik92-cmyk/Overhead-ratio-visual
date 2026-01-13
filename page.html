@@ -604,6 +604,8 @@
       image: normalizeImageData(category.image) || defaultImage
     });
 
+    const getCategoryImage = (category) => normalizeImageData(category.image) || defaultImage;
+
     const saveDraft = () => {
       const draft = {
         categories: state.categories,
@@ -664,7 +666,7 @@
                 safety: draft.images.safety,
                 'mfg-install': draft.images.below
               };
-              category.image = imageMap[category.id] ?? category.image;
+              category.image = normalizeImageData(imageMap[category.id]) ?? category.image;
             }
             return category;
           });
@@ -800,7 +802,7 @@
 
         const preview = document.createElement('div');
         preview.className = 'preview';
-        preview.style.backgroundImage = `url(${category.image})`;
+        preview.style.backgroundImage = `url(${getCategoryImage(category)})`;
 
         const footer = document.createElement('div');
         footer.className = 'upload__footer';
@@ -856,7 +858,7 @@
         const count = Number(category.counts?.above || 0);
         const iconGrid = document.createElement('div');
         iconGrid.className = 'figure__icon-grid';
-        const iconRows = buildIconRows(count, rowsAbove, category.image, label, true);
+        const iconRows = buildIconRows(count, rowsAbove, getCategoryImage(category), label, true);
         iconRows.forEach((row) => iconGrid.appendChild(row));
 
         column.appendChild(iconGrid);
@@ -878,7 +880,7 @@
         const iconGrid = document.createElement('div');
         iconGrid.className = 'figure__icon-grid';
         const label = getCategoryLabel(category);
-        const iconRows = buildIconRows(count, rowsBelow, category.image, label, false);
+        const iconRows = buildIconRows(count, rowsBelow, getCategoryImage(category), label, false);
         iconRows.forEach((row) => iconGrid.appendChild(row));
 
         column.appendChild(iconGrid);
@@ -1052,7 +1054,7 @@
           const col = i % iconsPerRow;
           const x = columnX + col * (iconSize + iconGap) + (columnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
           const y = aboveIconsTop + row * (iconSize + iconGap);
-          slide.addImage({ data: category.image, x, y, w: iconSize, h: iconSize });
+          slide.addImage({ data: getCategoryImage(category), x, y, w: iconSize, h: iconSize });
         }
       }
 
@@ -1102,7 +1104,7 @@
           const col = i % iconsPerRow;
           const x = columnX + col * (iconSize + iconGap) + (belowColumnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
           const y = lineY + belowTopPadding + row * (iconSize + iconGap);
-          slide.addImage({ data: category.image, x, y, w: iconSize, h: iconSize });
+          slide.addImage({ data: getCategoryImage(category), x, y, w: iconSize, h: iconSize });
         }
 
         const belowLabelY = lineY + belowTopPadding + belowRows * (iconSize + iconGap) + 0.1;
