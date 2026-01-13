@@ -21,115 +21,30 @@
       <section class="card">
         <h2>Above the Line Counts</h2>
         <p class="card__hint">Choose how many images appear in each category above the line.</p>
-        <div class="grid grid--counts">
-          <label class="field">
-            <span>Manufacturing OMR</span>
-            <input type="number" min="0" value="3" id="count-manufacturing">
-          </label>
-          <label class="field">
-            <span>Install OMR</span>
-            <input type="number" min="0" value="3" id="count-install">
-          </label>
-          <label class="field">
-            <span>Engineering</span>
-            <input type="number" min="0" value="3" id="count-engineering">
-          </label>
-          <label class="field">
-            <span>PL&amp;F</span>
-            <input type="number" min="0" value="2" id="count-plf">
-          </label>
-          <label class="field">
-            <span>Safety</span>
-            <input type="number" min="0" value="2" id="count-safety">
-          </label>
-          <label class="field">
-            <span>Rows (above the line)</span>
-            <input type="number" min="1" value="1" id="rows-above">
-          </label>
-        </div>
+        <div class="grid grid--counts" id="counts-above"></div>
+        <label class="field">
+          <span>Rows (above the line)</span>
+          <input type="number" min="1" value="1" id="rows-above">
+        </label>
       </section>
 
       <section class="card">
         <h2>Below the Line Counts</h2>
-        <p class="card__hint">Set the total number of images below the divider.</p>
-        <div class="grid grid--counts">
-          <label class="field">
-            <span>Manufacturing &amp; Install Engineers</span>
-            <input type="number" min="0" value="10" id="count-below">
-          </label>
-          <label class="field">
-            <span>Rows (below the line)</span>
-            <input type="number" min="1" value="2" id="rows-below">
-          </label>
-        </div>
+        <p class="card__hint">Choose how many images appear in each category below the divider.</p>
+        <div class="grid grid--counts" id="counts-below"></div>
+        <label class="field">
+          <span>Rows (below the line)</span>
+          <input type="number" min="1" value="2" id="rows-below">
+        </label>
       </section>
 
       <section class="card">
-        <h2>Labels</h2>
-        <p class="card__hint">Edit the text shown above the images and below the line.</p>
-        <div class="grid grid--counts">
-          <label class="field">
-            <span>Manufacturing OMR label</span>
-            <input type="text" value="Manufacturing OMR" id="label-manufacturing">
-          </label>
-          <label class="field">
-            <span>Install OMR label</span>
-            <input type="text" value="Install OMR" id="label-install">
-          </label>
-          <label class="field">
-            <span>Engineering label</span>
-            <input type="text" value="Engineering" id="label-engineering">
-          </label>
-          <label class="field">
-            <span>PL&amp;F label</span>
-            <input type="text" value="PL&amp;F" id="label-plf">
-          </label>
-          <label class="field">
-            <span>Safety label</span>
-            <input type="text" value="Safety" id="label-safety">
-          </label>
-          <label class="field">
-            <span>Below the line label</span>
-            <input type="text" value="Manufacturing &amp; Install Engineers" id="label-below">
-          </label>
+        <div class="card__header">
+          <h2>Image Library &amp; Labels</h2>
+          <button class="ghost" id="add-category" type="button">Add Label</button>
         </div>
-      </section>
-
-      <section class="card">
-        <h2>Image Library</h2>
-        <p class="card__hint">Upload a distinct image for each category. The legend updates automatically.</p>
-        <div class="grid grid--uploads">
-          <label class="upload">
-            <span>Manufacturing OMR</span>
-            <input type="file" accept="image/*" id="img-manufacturing">
-            <div class="preview" id="preview-manufacturing"></div>
-          </label>
-          <label class="upload">
-            <span>Install OMR</span>
-            <input type="file" accept="image/*" id="img-install">
-            <div class="preview" id="preview-install"></div>
-          </label>
-          <label class="upload">
-            <span>Engineering</span>
-            <input type="file" accept="image/*" id="img-engineering">
-            <div class="preview" id="preview-engineering"></div>
-          </label>
-          <label class="upload">
-            <span>PL&amp;F</span>
-            <input type="file" accept="image/*" id="img-plf">
-            <div class="preview" id="preview-plf"></div>
-          </label>
-          <label class="upload">
-            <span>Safety</span>
-            <input type="file" accept="image/*" id="img-safety">
-            <div class="preview" id="preview-safety"></div>
-          </label>
-          <label class="upload">
-            <span>Below the Line</span>
-            <input type="file" accept="image/*" id="img-below">
-            <div class="preview" id="preview-below"></div>
-          </label>
-        </div>
+        <p class="card__hint">Upload images and edit labels together. Add or remove categories as needed.</p>
+        <div class="grid grid--uploads" id="category-library"></div>
       </section>
 
       <section class="card">
@@ -150,20 +65,11 @@
         <div class="figure__above" id="figure-above"></div>
         <div class="figure__line"></div>
         <div class="figure__below" id="figure-below"></div>
-        <div class="figure__caption">Manufacturing &amp; Install Engineers</div>
       </section>
     </main>
   </div>
 
   <script>
-    const categories = [
-      { key: 'manufacturing', label: 'Manufacturing OMR' },
-      { key: 'install', label: 'Install OMR' },
-      { key: 'engineering', label: 'Engineering' },
-      { key: 'plf', label: 'PL&F' },
-      { key: 'safety', label: 'Safety' }
-    ];
-
     const defaultSvg = encodeURIComponent(`
       <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
         <rect width="120" height="120" rx="18" fill="#EEF2F7" />
@@ -172,40 +78,39 @@
       </svg>
     `);
 
+    const defaultImage = `data:image/svg+xml,${defaultSvg}`;
+    const defaultCategories = [
+      { id: 'manufacturing-omr', label: 'Manufacturing OMR', counts: { above: 3, below: 0 }, image: defaultImage },
+      { id: 'install-omr', label: 'Install OMR', counts: { above: 3, below: 0 }, image: defaultImage },
+      { id: 'engineering', label: 'Engineering', counts: { above: 3, below: 0 }, image: defaultImage },
+      { id: 'plf', label: 'PL&F', counts: { above: 2, below: 0 }, image: defaultImage },
+      { id: 'safety', label: 'Safety', counts: { above: 2, below: 0 }, image: defaultImage },
+      { id: 'mfg-install', label: 'Manufacturing & Install Engineers', counts: { above: 0, below: 10 }, image: defaultImage }
+    ];
+
     const state = {
-      images: {
-        manufacturing: `data:image/svg+xml,${defaultSvg}`,
-        install: `data:image/svg+xml,${defaultSvg}`,
-        engineering: `data:image/svg+xml,${defaultSvg}`,
-        plf: `data:image/svg+xml,${defaultSvg}`,
-        safety: `data:image/svg+xml,${defaultSvg}`,
-        below: `data:image/svg+xml,${defaultSvg}`
-      }
+      categories: structuredClone(defaultCategories),
+      rowsAbove: 1,
+      rowsBelow: 2
     };
 
     const draftKey = 'overhead-ratio-draft-v1';
 
+    const normalizeCategory = (category) => ({
+      id: category.id || `category-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      label: category.label || 'New Category',
+      counts: {
+        above: Number(category.counts?.above ?? 0),
+        below: Number(category.counts?.below ?? 0)
+      },
+      image: category.image || defaultImage
+    });
+
     const saveDraft = () => {
       const draft = {
-        counts: {
-          manufacturing: document.getElementById('count-manufacturing').value,
-          install: document.getElementById('count-install').value,
-          engineering: document.getElementById('count-engineering').value,
-          plf: document.getElementById('count-plf').value,
-          safety: document.getElementById('count-safety').value,
-          below: document.getElementById('count-below').value,
-          rowsAbove: document.getElementById('rows-above').value,
-          rowsBelow: document.getElementById('rows-below').value
-        },
-        labels: {
-          manufacturing: document.getElementById('label-manufacturing').value,
-          install: document.getElementById('label-install').value,
-          engineering: document.getElementById('label-engineering').value,
-          plf: document.getElementById('label-plf').value,
-          safety: document.getElementById('label-safety').value,
-          below: document.getElementById('label-below').value
-        },
-        images: state.images
+        categories: state.categories,
+        rowsAbove: state.rowsAbove,
+        rowsBelow: state.rowsBelow
       };
       localStorage.setItem(draftKey, JSON.stringify(draft));
     };
@@ -215,62 +120,64 @@
       if (!raw) return;
       try {
         const draft = JSON.parse(raw);
-        if (draft?.counts) {
-          document.getElementById('count-manufacturing').value = draft.counts.manufacturing ?? 0;
-          document.getElementById('count-install').value = draft.counts.install ?? 0;
-          document.getElementById('count-engineering').value = draft.counts.engineering ?? 0;
-          document.getElementById('count-plf').value = draft.counts.plf ?? 0;
-          document.getElementById('count-safety').value = draft.counts.safety ?? 0;
-          document.getElementById('count-below').value = draft.counts.below ?? 0;
-          document.getElementById('rows-above').value = draft.counts.rowsAbove ?? 1;
-          document.getElementById('rows-below').value = draft.counts.rowsBelow ?? 2;
+        if (draft?.categories?.length) {
+          state.categories = draft.categories.map(normalizeCategory);
+          state.rowsAbove = Number(draft.rowsAbove ?? 1);
+          state.rowsBelow = Number(draft.rowsBelow ?? 2);
+          return;
         }
-        if (draft?.labels) {
-          document.getElementById('label-manufacturing').value = draft.labels.manufacturing ?? 'Manufacturing OMR';
-          document.getElementById('label-install').value = draft.labels.install ?? 'Install OMR';
-          document.getElementById('label-engineering').value = draft.labels.engineering ?? 'Engineering';
-          document.getElementById('label-plf').value = draft.labels.plf ?? 'PL&F';
-          document.getElementById('label-safety').value = draft.labels.safety ?? 'Safety';
-          document.getElementById('label-below').value = draft.labels.below ?? 'Manufacturing & Install Engineers';
-        }
-        if (draft?.images) {
-          state.images = { ...state.images, ...draft.images };
+
+        if (draft?.counts || draft?.labels || draft?.images) {
+          const mapped = structuredClone(defaultCategories).map((category) => {
+            if (draft?.labels) {
+              const labelMap = {
+                'manufacturing-omr': draft.labels.manufacturing,
+                'install-omr': draft.labels.install,
+                engineering: draft.labels.engineering,
+                plf: draft.labels.plf,
+                safety: draft.labels.safety,
+                'mfg-install': draft.labels.below
+              };
+              category.label = labelMap[category.id] ?? category.label;
+            }
+
+            if (draft?.counts) {
+              const countMap = {
+                'manufacturing-omr': draft.counts.manufacturing,
+                'install-omr': draft.counts.install,
+                engineering: draft.counts.engineering,
+                plf: draft.counts.plf,
+                safety: draft.counts.safety,
+                'mfg-install': draft.counts.below
+              };
+              if (category.id === 'mfg-install') {
+                category.counts.below = Number(countMap[category.id] ?? category.counts.below);
+              } else {
+                category.counts.above = Number(countMap[category.id] ?? category.counts.above);
+              }
+            }
+
+            if (draft?.images) {
+              const imageMap = {
+                'manufacturing-omr': draft.images.manufacturing,
+                'install-omr': draft.images.install,
+                engineering: draft.images.engineering,
+                plf: draft.images.plf,
+                safety: draft.images.safety,
+                'mfg-install': draft.images.below
+              };
+              category.image = imageMap[category.id] ?? category.image;
+            }
+            return category;
+          });
+
+          state.categories = mapped;
+          state.rowsAbove = Number(draft.counts?.rowsAbove ?? 1);
+          state.rowsBelow = Number(draft.counts?.rowsBelow ?? 2);
         }
       } catch (error) {
         console.warn('Draft load failed', error);
       }
-    };
-
-    const updatePreviewImage = (key, dataUrl) => {
-      const preview = document.getElementById(`preview-${key}`);
-      preview.style.backgroundImage = `url(${dataUrl})`;
-    };
-
-    const initUploads = () => {
-      const uploadKeys = [...categories.map((c) => c.key), 'below'];
-      uploadKeys.forEach((key) => {
-        const input = document.getElementById(`img-${key}`);
-        if (!input) return;
-        input.addEventListener('change', (event) => {
-          const file = event.target.files?.[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (loadEvent) => {
-            const result = loadEvent.target.result;
-            state.images[key] = result;
-            updatePreviewImage(key, result);
-            saveDraft();
-          };
-          reader.readAsDataURL(file);
-        });
-      });
-    };
-
-    const renderLegend = () => {
-      categories.forEach((category) => {
-        updatePreviewImage(category.key, state.images[category.key]);
-      });
-      updatePreviewImage('below', state.images.below);
     };
 
     const createIcon = (src, label) => {
@@ -283,15 +190,7 @@
       return wrapper;
     };
 
-    const getLabelValue = (key) => {
-      const input = document.getElementById(`label-${key}`);
-      return input?.value?.trim() || categories.find((category) => category.key === key)?.label || key;
-    };
-
-    const getRowsValue = (key) => {
-      const input = document.getElementById(key);
-      return Math.max(1, Number(input?.value || 1));
-    };
+    const getCategoryLabel = (category) => category.label?.trim() || 'Untitled';
 
     const buildIconRows = (count, rows, iconSrc, label, fillFromBottom) => {
       const safeRows = Math.max(1, rows);
@@ -311,25 +210,138 @@
       return rowElements;
     };
 
+    const renderCountsSection = (containerId, position) => {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      state.categories.forEach((category) => {
+        const field = document.createElement('label');
+        field.className = 'field';
+        const name = document.createElement('span');
+        name.textContent = getCategoryLabel(category);
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = '0';
+        input.value = category.counts[position] ?? 0;
+        input.addEventListener('input', () => {
+          category.counts[position] = Number(input.value || 0);
+          renderFigure();
+          saveDraft();
+        });
+        field.appendChild(name);
+        field.appendChild(input);
+        container.appendChild(field);
+      });
+    };
+
+    const renderCategoryLibrary = () => {
+      const container = document.getElementById('category-library');
+      container.innerHTML = '';
+      const disableRemove = state.categories.length === 1;
+
+      state.categories.forEach((category) => {
+        const card = document.createElement('div');
+        card.className = 'upload';
+
+        const header = document.createElement('div');
+        header.className = 'upload__header';
+
+        const labelInput = document.createElement('input');
+        labelInput.type = 'text';
+        labelInput.value = category.label;
+        labelInput.className = 'upload__label';
+        labelInput.addEventListener('input', () => {
+          category.label = labelInput.value;
+          renderCountsSection('counts-above', 'above');
+          renderCountsSection('counts-below', 'below');
+          renderFigure();
+          saveDraft();
+        });
+
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'ghost ghost--danger';
+        removeButton.textContent = 'Remove';
+        removeButton.disabled = disableRemove;
+        removeButton.addEventListener('click', () => {
+          state.categories = state.categories.filter((item) => item.id !== category.id);
+          renderControls();
+          renderFigure();
+          saveDraft();
+        });
+
+        header.appendChild(labelInput);
+        header.appendChild(removeButton);
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.addEventListener('change', (event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (loadEvent) => {
+            const result = loadEvent.target.result;
+            category.image = result;
+            preview.style.backgroundImage = `url(${result})`;
+            renderFigure();
+            saveDraft();
+          };
+          reader.readAsDataURL(file);
+        });
+
+        const preview = document.createElement('div');
+        preview.className = 'preview';
+        preview.style.backgroundImage = `url(${category.image})`;
+
+        card.appendChild(header);
+        card.appendChild(fileInput);
+        card.appendChild(preview);
+        container.appendChild(card);
+      });
+    };
+
+    const renderControls = () => {
+      renderCountsSection('counts-above', 'above');
+      renderCountsSection('counts-below', 'below');
+      renderCategoryLibrary();
+
+      const rowsAboveInput = document.getElementById('rows-above');
+      const rowsBelowInput = document.getElementById('rows-below');
+      rowsAboveInput.value = state.rowsAbove;
+      rowsBelowInput.value = state.rowsBelow;
+
+      rowsAboveInput.oninput = () => {
+        state.rowsAbove = Math.max(1, Number(rowsAboveInput.value || 1));
+        renderFigure();
+        saveDraft();
+      };
+
+      rowsBelowInput.oninput = () => {
+        state.rowsBelow = Math.max(1, Number(rowsBelowInput.value || 1));
+        renderFigure();
+        saveDraft();
+      };
+    };
+
     const renderAbove = () => {
       const container = document.getElementById('figure-above');
       container.innerHTML = '';
-      const rowsAbove = getRowsValue('rows-above');
+      const rowsAbove = state.rowsAbove;
 
-      categories.forEach((category) => {
+      state.categories.forEach((category) => {
         const column = document.createElement('div');
         column.className = 'figure__column';
 
         const title = document.createElement('div');
         title.className = 'figure__column-title';
-        const label = getLabelValue(category.key);
+        const label = getCategoryLabel(category);
         title.textContent = label;
         column.appendChild(title);
 
-        const count = Number(document.getElementById(`count-${category.key}`).value || 0);
+        const count = Number(category.counts?.above || 0);
         const iconGrid = document.createElement('div');
         iconGrid.className = 'figure__icon-grid';
-        const iconRows = buildIconRows(count, rowsAbove, state.images[category.key], label, true);
+        const iconRows = buildIconRows(count, rowsAbove, category.image, label, true);
         iconRows.forEach((row) => iconGrid.appendChild(row));
 
         column.appendChild(iconGrid);
@@ -340,14 +352,27 @@
     const renderBelow = () => {
       const container = document.getElementById('figure-below');
       container.innerHTML = '';
+      const rowsBelow = state.rowsBelow;
 
-      const count = Number(document.getElementById('count-below').value || 0);
-      const rowsBelow = getRowsValue('rows-below');
-      const labelInput = document.getElementById('label-below');
-      const label = labelInput?.value?.trim() || 'Below the line';
-      const iconRows = buildIconRows(count, rowsBelow, state.images.below, label, false);
-      iconRows.forEach((row) => container.appendChild(row));
-      document.querySelector('.figure__caption').textContent = label;
+      state.categories.forEach((category) => {
+        const column = document.createElement('div');
+        column.className = 'figure__column';
+
+        const title = document.createElement('div');
+        title.className = 'figure__column-title';
+        const label = getCategoryLabel(category);
+        title.textContent = label;
+        column.appendChild(title);
+
+        const count = Number(category.counts?.below || 0);
+        const iconGrid = document.createElement('div');
+        iconGrid.className = 'figure__icon-grid';
+        const iconRows = buildIconRows(count, rowsBelow, category.image, label, false);
+        iconRows.forEach((row) => iconGrid.appendChild(row));
+
+        column.appendChild(iconGrid);
+        container.appendChild(column);
+      });
     };
 
     const renderFigure = () => {
@@ -367,20 +392,20 @@
       const leftPadding = 0.6;
       const rightPadding = 0.6;
       const usableWidth = slideWidth - leftPadding - rightPadding;
-      const columnWidth = usableWidth / categories.length;
+      const columnWidth = usableWidth / Math.max(1, state.categories.length);
       const iconSize = 0.7;
       const iconGap = 0.1;
-      const aboveRows = getRowsValue('rows-above');
-      const belowRows = getRowsValue('rows-below');
+      const aboveRows = state.rowsAbove;
+      const belowRows = state.rowsBelow;
       const lineY = 3.4;
       const aboveBottomPadding = 0.2;
       const belowTopPadding = 0.3;
       const aboveRowHeight = aboveRows * (iconSize + iconGap) - iconGap;
       const aboveIconsTop = lineY - aboveBottomPadding - aboveRowHeight;
 
-      categories.forEach((category, index) => {
+      state.categories.forEach((category, index) => {
         const columnX = leftPadding + columnWidth * index;
-        const label = getLabelValue(category.key);
+        const label = getCategoryLabel(category);
         slide.addText(label, {
           x: columnX,
           y: 0.8,
@@ -391,14 +416,14 @@
           color: '4B5563'
         });
 
-        const count = Number(document.getElementById(`count-${category.key}`).value || 0);
+        const count = Number(category.counts?.above || 0);
         const iconsPerRow = Math.max(1, Math.ceil(count / aboveRows));
         for (let i = 0; i < count; i += 1) {
           const row = aboveRows - 1 - Math.floor(i / iconsPerRow);
           const col = i % iconsPerRow;
           const x = columnX + col * (iconSize + iconGap) + (columnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
           const y = aboveIconsTop + row * (iconSize + iconGap);
-          slide.addImage({ data: state.images[category.key], x, y, w: iconSize, h: iconSize });
+          slide.addImage({ data: category.image, x, y, w: iconSize, h: iconSize });
         }
       });
 
@@ -410,25 +435,28 @@
         line: { color: '111827', width: 2 }
       });
 
-      const belowCount = Number(document.getElementById('count-below').value || 0);
-      const belowIconsPerRow = Math.max(1, Math.ceil(belowCount / belowRows));
-      for (let i = 0; i < belowCount; i += 1) {
-        const row = Math.floor(i / belowIconsPerRow);
-        const col = i % belowIconsPerRow;
-        const x = leftPadding + col * (iconSize + iconGap);
-        const y = lineY + belowTopPadding + row * (iconSize + iconGap);
-        slide.addImage({ data: state.images.below, x, y, w: iconSize, h: iconSize });
-      }
+      state.categories.forEach((category, index) => {
+        const columnX = leftPadding + columnWidth * index;
+        const count = Number(category.counts?.below || 0);
+        const iconsPerRow = Math.max(1, Math.ceil(count / belowRows));
+        for (let i = 0; i < count; i += 1) {
+          const row = Math.floor(i / iconsPerRow);
+          const col = i % iconsPerRow;
+          const x = columnX + col * (iconSize + iconGap) + (columnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
+          const y = lineY + belowTopPadding + row * (iconSize + iconGap);
+          slide.addImage({ data: category.image, x, y, w: iconSize, h: iconSize });
+        }
 
-      const belowLabel = document.getElementById('label-below').value?.trim() || 'Manufacturing & Install Engineers';
-      slide.addText(belowLabel, {
-        x: leftPadding,
-        y: 6.5,
-        w: usableWidth,
-        h: 0.4,
-        fontSize: 12,
-        align: 'center',
-        color: '4B5563'
+        const belowLabelY = lineY + belowTopPadding + belowRows * (iconSize + iconGap) + 0.1;
+        slide.addText(getCategoryLabel(category), {
+          x: columnX,
+          y: belowLabelY,
+          w: columnWidth,
+          h: 0.3,
+          fontSize: 10,
+          align: 'center',
+          color: '4B5563'
+        });
       });
 
       pptx.writeFile({ fileName: 'overhead-ratio-visual.pptx' });
@@ -436,20 +464,19 @@
 
     document.getElementById('generate').addEventListener('click', renderFigure);
     document.getElementById('exportPpt').addEventListener('click', exportToPpt);
+    document.getElementById('add-category').addEventListener('click', () => {
+      state.categories.push(normalizeCategory({ label: 'New Category', counts: { above: 0, below: 0 }, image: defaultImage }));
+      renderControls();
+      renderFigure();
+      saveDraft();
+    });
     document.getElementById('clearDraft').addEventListener('click', () => {
       localStorage.removeItem(draftKey);
       window.location.reload();
     });
 
-    document.querySelectorAll('input[type="number"], input[type="text"]').forEach((input) => {
-      input.addEventListener('input', () => {
-        renderFigure();
-      });
-    });
-
     loadDraft();
-    initUploads();
-    renderLegend();
+    renderControls();
     renderFigure();
   </script>
 </body>
