@@ -220,11 +220,17 @@ button.ghost {
 }
 
 .figure__icon-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   width: 100%;
-  justify-items: center;
+  align-items: center;
+}
+
+.figure__icon-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
 }
 
 .figure__line {
@@ -234,10 +240,11 @@ button.ghost {
 }
 
 .figure__below {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 16px;
   padding-top: 8px;
+  align-items: center;
 }
 
 .figure__caption {
