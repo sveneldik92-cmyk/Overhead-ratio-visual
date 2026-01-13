@@ -961,6 +961,9 @@
     };
 
     const waitForFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    const countIcons = (categories, position) => categories.reduce((sum, category) => (
+      sum + Number(category.counts?.[position] || 0)
+    ), 0);
 
     const withTimeout = (promise, ms, message) => Promise.race([
       promise,
@@ -982,7 +985,11 @@
       exportButton.disabled = true;
       exportButton.textContent = 'Exporting...';
       exportStatus?.classList.add('is-active');
-      updateExportStatus('Preparing the slide…', ['Sizing the slide layout.', 'Calculating icon positions.']);
+      updateExportStatus('Preparing the slide…', [
+        'Collecting the latest layout settings.',
+        'Counting total icons in the layout.',
+        'Calculating slide metrics.'
+      ]);
       await waitForFrame();
 
       const pptx = new PptxGenJS();
@@ -1005,8 +1012,22 @@
       const belowTopPadding = 0.3;
       const aboveRowHeight = aboveRows * (iconSize + iconGap) - iconGap;
       const aboveIconsTop = lineY - aboveBottomPadding - aboveRowHeight;
+      const totalAboveIcons = countIcons(state.categories, 'above');
+      const belowCategories = state.categories.filter((category) => Number(category.counts?.below || 0) > 0);
+      const totalBelowIcons = countIcons(belowCategories, 'below');
 
-      updateExportStatus('Placing icons above the line…', [`${state.categories.length} categories detected.`]);
+      updateExportStatus('Sizing the slide layout…', [
+        `Slide width: ${slideWidth} in, usable: ${usableWidth.toFixed(2)} in.`,
+        `Columns: ${state.categories.length}, column width: ${columnWidth.toFixed(2)} in.`,
+        `Icon size: ${iconSize} in, rows above: ${aboveRows}, rows below: ${belowRows}.`
+      ]);
+      await waitForFrame();
+
+      updateExportStatus('Calculating icon positions…', [
+        `${totalAboveIcons} icons above the line.`,
+        `${totalBelowIcons} icons below the line.`,
+        'Preparing column grids.'
+      ]);
       await waitForFrame();
 
       state.categories.forEach((category, index) => {
@@ -1024,6 +1045,12 @@
 
         const count = Number(category.counts?.above || 0);
         const iconsPerRow = Math.max(1, Math.ceil(count / aboveRows));
+        updateExportStatus(`Placing icons above the line… (${index + 1}/${state.categories.length})`, [
+          `Category: ${label}`,
+          `Icons: ${count}, ${iconsPerRow} per row.`,
+          `Column ${index + 1} of ${state.categories.length}.`
+        ]);
+        await waitForFrame();
         for (let i = 0; i < count; i += 1) {
           const row = aboveRows - 1 - Math.floor(i / iconsPerRow);
           const col = i % iconsPerRow;
@@ -1044,16 +1071,25 @@
         line: { color: '111827', width: 2 }
       });
 
-      const belowCategories = state.categories.filter((category) => Number(category.counts?.below || 0) > 0);
       const belowColumnWidth = usableWidth / Math.max(1, belowCategories.length);
 
-      updateExportStatus('Placing icons below the line…', [`${belowCategories.length} categories below the line.`]);
+      updateExportStatus('Placing icons below the line…', [
+        `${belowCategories.length} categories below the line.`,
+        `Column width: ${belowColumnWidth.toFixed(2)} in.`,
+        'Building icon grids.'
+      ]);
       await waitForFrame();
 
       belowCategories.forEach((category, index) => {
         const columnX = leftPadding + belowColumnWidth * index;
         const count = Number(category.counts?.below || 0);
         const iconsPerRow = Math.max(1, Math.ceil(count / belowRows));
+        updateExportStatus(`Placing icons below the line… (${index + 1}/${belowCategories.length})`, [
+          `Category: ${getCategoryLabel(category)}`,
+          `Icons: ${count}, ${iconsPerRow} per row.`,
+          `Column ${index + 1} of ${belowCategories.length}.`
+        ]);
+        await waitForFrame();
         for (let i = 0; i < count; i += 1) {
           const row = Math.floor(i / iconsPerRow);
           const col = i % iconsPerRow;
@@ -1075,7 +1111,17 @@
       });
 
       try {
-        updateExportStatus('Generating PowerPoint file…', ['Packaging slides and assets.', 'This can take a few seconds.']);
+        updateExportStatus('Finalizing the slide…', [
+          'Checking text placement and labels.',
+          'Finalizing icon layout.',
+          'Preparing the PPTX package.'
+        ]);
+        await waitForFrame();
+        updateExportStatus('Generating PowerPoint file…', [
+          'Packaging slides and assets.',
+          'Serializing the PowerPoint file.',
+          'This can take a few seconds.'
+        ]);
         await waitForFrame();
         await withTimeout(pptx.writeFile({ fileName: 'overhead-ratio-visual.pptx' }), 30000, 'PowerPoint export timed out.');
       } catch (error) {
