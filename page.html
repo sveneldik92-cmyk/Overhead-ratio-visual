@@ -278,14 +278,34 @@
 
     .export-status {
       display: none;
-      align-items: center;
-      gap: 8px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
       font-size: 12px;
       color: var(--muted);
     }
 
     .export-status.is-active {
       display: flex;
+    }
+
+    .export-status__header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .export-status__message {
+      font-weight: 500;
+    }
+
+    .export-status__details {
+      margin: 0;
+      padding-left: 16px;
+      font-size: 11px;
+      color: #8b95a5;
+      display: grid;
+      gap: 4px;
     }
 
     .export-status__bar {
@@ -508,8 +528,11 @@
           <div class="actions__export">
             <button id="exportPpt" class="secondary" type="button">Export to PowerPoint</button>
             <div class="export-status" id="exportStatus">
-              <span>Exporting…</span>
-              <div class="export-status__bar" role="progressbar" aria-valuetext="Exporting"></div>
+              <div class="export-status__header">
+                <span class="export-status__message" id="exportStatusMessage">Exporting…</span>
+                <div class="export-status__bar" role="progressbar" aria-valuetext="Exporting"></div>
+              </div>
+              <ul class="export-status__details" id="exportStatusDetails"></ul>
             </div>
           </div>
         </div>
@@ -530,15 +553,20 @@
   </div>
 
   <script>
-    const defaultSvg = encodeURIComponent(`
+    const svgToDataUrl = (svg) => {
+      const encoded = btoa(unescape(encodeURIComponent(svg)));
+      return `data:image/svg+xml;base64,${encoded}`;
+    };
+
+    const defaultSvg = `
       <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
         <rect width="120" height="120" rx="18" fill="#EEF2F7" />
         <path d="M35 70c0-12 10-22 22-22s22 10 22 22" stroke="#B3BCCB" stroke-width="6" fill="none"/>
         <circle cx="57" cy="42" r="14" fill="#B3BCCB"/>
       </svg>
-    `);
+    `;
 
-    const defaultImage = `data:image/svg+xml,${defaultSvg}`;
+    const defaultImage = svgToDataUrl(defaultSvg);
     const defaultCategories = [
       { id: 'manufacturing-omr', label: 'Manufacturing OMR', counts: { above: 3, below: 0 }, image: defaultImage },
       { id: 'install-omr', label: 'Install OMR', counts: { above: 3, below: 0 }, image: defaultImage },
@@ -556,6 +584,16 @@
 
     const draftKey = 'overhead-ratio-draft-v1';
 
+    const normalizeImageData = (image) => {
+      if (!image) return defaultImage;
+      if (typeof image !== 'string') return defaultImage;
+      if (image.startsWith('data:image/svg+xml') && !image.includes('base64,')) {
+        const rawSvg = decodeURIComponent(image.split(',')[1] || '');
+        return svgToDataUrl(rawSvg);
+      }
+      return image;
+    };
+
     const normalizeCategory = (category) => ({
       id: category.id || `category-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       label: category.label || 'New Category',
@@ -563,7 +601,7 @@
         above: Number(category.counts?.above ?? 0),
         below: Number(category.counts?.below ?? 0)
       },
-      image: category.image || defaultImage
+      image: normalizeImageData(category.image) || defaultImage
     });
 
     const saveDraft = () => {
@@ -907,8 +945,31 @@
       return pptxScriptPromise;
     };
 
+    const updateExportStatus = (message, detailItems = []) => {
+      const exportStatus = document.getElementById('exportStatus');
+      const exportMessage = document.getElementById('exportStatusMessage');
+      const exportDetails = document.getElementById('exportStatusDetails');
+      if (!exportStatus || !exportMessage || !exportDetails) return;
+      exportMessage.textContent = message;
+      exportDetails.innerHTML = '';
+      detailItems.forEach((detail) => {
+        const item = document.createElement('li');
+        item.textContent = detail;
+        exportDetails.appendChild(item);
+      });
+      exportStatus.querySelector('.export-status__bar')?.setAttribute('aria-valuetext', message);
+    };
+
+    const waitForFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+    const withTimeout = (promise, ms, message) => Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms))
+    ]);
+
     const exportToPpt = async () => {
       try {
+        updateExportStatus('Loading export tools…', ['Fetching the PowerPoint library.']);
         await loadPptxGen();
       } catch (error) {
         console.error('PowerPoint export library failed to load.', error);
@@ -921,6 +982,8 @@
       exportButton.disabled = true;
       exportButton.textContent = 'Exporting...';
       exportStatus?.classList.add('is-active');
+      updateExportStatus('Preparing the slide…', ['Sizing the slide layout.', 'Calculating icon positions.']);
+      await waitForFrame();
 
       const pptx = new PptxGenJS();
       pptx.layout = 'LAYOUT_WIDE';
@@ -942,6 +1005,9 @@
       const belowTopPadding = 0.3;
       const aboveRowHeight = aboveRows * (iconSize + iconGap) - iconGap;
       const aboveIconsTop = lineY - aboveBottomPadding - aboveRowHeight;
+
+      updateExportStatus('Placing icons above the line…', [`${state.categories.length} categories detected.`]);
+      await waitForFrame();
 
       state.categories.forEach((category, index) => {
         const columnX = leftPadding + columnWidth * index;
@@ -967,6 +1033,9 @@
         }
       });
 
+      updateExportStatus('Drawing the divider line…', ['Adding the center line.']);
+      await waitForFrame();
+
       slide.addShape(pptx.ShapeType.line, {
         x: leftPadding,
         y: lineY,
@@ -977,6 +1046,9 @@
 
       const belowCategories = state.categories.filter((category) => Number(category.counts?.below || 0) > 0);
       const belowColumnWidth = usableWidth / Math.max(1, belowCategories.length);
+
+      updateExportStatus('Placing icons below the line…', [`${belowCategories.length} categories below the line.`]);
+      await waitForFrame();
 
       belowCategories.forEach((category, index) => {
         const columnX = leftPadding + belowColumnWidth * index;
@@ -1003,9 +1075,12 @@
       });
 
       try {
-        await pptx.writeFile({ fileName: 'overhead-ratio-visual.pptx' });
+        updateExportStatus('Generating PowerPoint file…', ['Packaging slides and assets.', 'This can take a few seconds.']);
+        await waitForFrame();
+        await withTimeout(pptx.writeFile({ fileName: 'overhead-ratio-visual.pptx' }), 30000, 'PowerPoint export timed out.');
       } catch (error) {
         console.error('PowerPoint export failed', error);
+        updateExportStatus('Export failed.', ['Please try again.', 'If the issue persists, refresh the page.']);
         alert('PowerPoint export failed. Please try again.');
       } finally {
         exportButton.disabled = false;
