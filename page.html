@@ -149,10 +149,11 @@
     }
 
     .field--row {
-      flex-direction: row;
+      display: grid;
+      grid-template-columns: 1fr auto;
       align-items: center;
-      justify-content: space-between;
       gap: 12px;
+      padding: 4px 6px;
     }
 
     .field span {
@@ -175,6 +176,12 @@
     .field--row input {
       width: 72px;
       text-align: right;
+    }
+
+    .counts-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 12px 0 8px;
     }
 
     .upload {
@@ -468,6 +475,7 @@
         <h2>Above the Line Counts</h2>
         <p class="card__hint">Choose how many images appear in each category above the line.</p>
         <div id="counts-above"></div>
+        <div class="counts-divider" role="presentation"></div>
         <label class="field field--row">
           <span>Rows (above the line)</span>
           <input type="number" min="1" value="1" id="rows-above">
@@ -478,6 +486,7 @@
         <h2>Below the Line Counts</h2>
         <p class="card__hint">Choose how many images appear in each category below the divider.</p>
         <div id="counts-below"></div>
+        <div class="counts-divider" role="presentation"></div>
         <label class="field field--row">
           <span>Rows (below the line)</span>
           <input type="number" min="1" value="2" id="rows-below">
@@ -851,8 +860,58 @@
       saveDraft();
     };
 
+    const pptxScriptSources = [
+      'https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.min.js',
+      'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.min.js',
+      'https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.min.js'
+    ];
+    let pptxScriptPromise = null;
+
+    const loadPptxGen = () => {
+      if (typeof PptxGenJS !== 'undefined') {
+        return Promise.resolve();
+      }
+
+      if (pptxScriptPromise) {
+        return pptxScriptPromise;
+      }
+
+      pptxScriptPromise = new Promise((resolve, reject) => {
+        let index = 0;
+
+        const tryNext = () => {
+          if (typeof PptxGenJS !== 'undefined') {
+            resolve();
+            return;
+          }
+
+          if (index >= pptxScriptSources.length) {
+            reject(new Error('PptxGenJS failed to load.'));
+            return;
+          }
+
+          const script = document.createElement('script');
+          script.src = pptxScriptSources[index];
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => {
+            index += 1;
+            tryNext();
+          };
+          document.head.appendChild(script);
+        };
+
+        tryNext();
+      });
+
+      return pptxScriptPromise;
+    };
+
     const exportToPpt = async () => {
-      if (typeof PptxGenJS === 'undefined') {
+      try {
+        await loadPptxGen();
+      } catch (error) {
+        console.error('PowerPoint export library failed to load.', error);
         alert('PowerPoint export library failed to load. Please refresh and try again.');
         return;
       }
