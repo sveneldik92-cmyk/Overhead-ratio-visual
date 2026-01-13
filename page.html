@@ -120,6 +120,10 @@
       vertical-align: top;
     }
 
+    .counts-table td {
+      text-align: right;
+    }
+
     .counts-table__label {
       display: block;
       font-size: 13px;
@@ -134,6 +138,7 @@
       border-radius: 8px;
       border: 1px solid var(--border);
       font-size: 14px;
+      text-align: right;
     }
 
     .field {
@@ -141,6 +146,13 @@
       flex-direction: column;
       gap: 6px;
       font-size: 13px;
+    }
+
+    .field--row {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
 
     .field span {
@@ -158,6 +170,11 @@
       border-radius: 8px;
       border: 1px solid var(--border);
       font-size: 14px;
+    }
+
+    .field--row input {
+      width: 72px;
+      text-align: right;
     }
 
     .upload {
@@ -192,7 +209,11 @@
 
     .upload__footer {
       display: flex;
-      justify-content: flex-end;
+      width: 100%;
+    }
+
+    .upload__footer button {
+      width: 100%;
     }
 
     .preview {
@@ -209,6 +230,11 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+    }
+
+    .actions__export {
+      display: grid;
+      gap: 8px;
     }
 
     button {
@@ -241,6 +267,45 @@
     button.ghost--danger:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    .export-status {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .export-status.is-active {
+      display: flex;
+    }
+
+    .export-status__bar {
+      position: relative;
+      flex: 1;
+      height: 6px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
+
+    .export-status__bar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(37, 99, 235, 0.2), rgba(37, 99, 235, 0.9), rgba(37, 99, 235, 0.2));
+      transform: translateX(-100%);
+      animation: export-progress 1.2s infinite;
+    }
+
+    @keyframes export-progress {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(100%);
+      }
     }
 
     .preview-pane {
@@ -286,7 +351,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 20px;
-      align-items: start;
+      align-items: stretch;
       min-height: 0;
       padding-bottom: 4px;
     }
@@ -324,6 +389,11 @@
 
     .figure__below .figure__icon-grid {
       margin-top: 0;
+    }
+
+    .figure__above .figure__icon-grid {
+      flex: 1;
+      justify-content: flex-end;
     }
 
     .figure__icon-row {
@@ -398,7 +468,7 @@
         <h2>Above the Line Counts</h2>
         <p class="card__hint">Choose how many images appear in each category above the line.</p>
         <div id="counts-above"></div>
-        <label class="field">
+        <label class="field field--row">
           <span>Rows (above the line)</span>
           <input type="number" min="1" value="1" id="rows-above">
         </label>
@@ -408,7 +478,7 @@
         <h2>Below the Line Counts</h2>
         <p class="card__hint">Choose how many images appear in each category below the divider.</p>
         <div id="counts-below"></div>
-        <label class="field">
+        <label class="field field--row">
           <span>Rows (below the line)</span>
           <input type="number" min="1" value="2" id="rows-below">
         </label>
@@ -426,8 +496,13 @@
       <section class="card">
         <h2>Actions</h2>
         <div class="actions">
-          <button id="generate" type="button">Generate Figure</button>
-          <button id="exportPpt" class="secondary" type="button">Export to PowerPoint</button>
+          <div class="actions__export">
+            <button id="exportPpt" class="secondary" type="button">Export to PowerPoint</button>
+            <div class="export-status" id="exportStatus">
+              <span>Exporting…</span>
+              <div class="export-status__bar" role="progressbar" aria-valuetext="Exporting"></div>
+            </div>
+          </div>
         </div>
       </section>
     </aside>
@@ -658,7 +733,6 @@
         });
 
         header.appendChild(labelInput);
-        header.appendChild(removeButton);
 
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
@@ -777,7 +851,18 @@
       saveDraft();
     };
 
-    const exportToPpt = () => {
+    const exportToPpt = async () => {
+      if (typeof PptxGenJS === 'undefined') {
+        alert('PowerPoint export library failed to load. Please refresh and try again.');
+        return;
+      }
+
+      const exportStatus = document.getElementById('exportStatus');
+      const exportButton = document.getElementById('exportPpt');
+      exportButton.disabled = true;
+      exportButton.textContent = 'Exporting...';
+      exportStatus?.classList.add('is-active');
+
       const pptx = new PptxGenJS();
       pptx.layout = 'LAYOUT_WIDE';
 
@@ -858,10 +943,18 @@
         });
       });
 
-      pptx.writeFile({ fileName: 'overhead-ratio-visual.pptx' });
+      try {
+        await pptx.writeFile({ fileName: 'overhead-ratio-visual.pptx' });
+      } catch (error) {
+        console.error('PowerPoint export failed', error);
+        alert('PowerPoint export failed. Please try again.');
+      } finally {
+        exportButton.disabled = false;
+        exportButton.textContent = 'Export to PowerPoint';
+        exportStatus?.classList.remove('is-active');
+      }
     };
 
-    document.getElementById('generate').addEventListener('click', renderFigure);
     document.getElementById('exportPpt').addEventListener('click', exportToPpt);
     document.getElementById('add-category').addEventListener('click', () => {
       state.categories.push(normalizeCategory({ label: 'New Category', counts: { above: 0, below: 0 }, image: defaultImage }));
