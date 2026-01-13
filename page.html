@@ -933,7 +933,14 @@
           const script = document.createElement('script');
           script.src = pptxScriptSources[index];
           script.async = true;
-          script.onload = () => resolve();
+          script.onload = () => {
+            if (typeof PptxGenJS !== 'undefined') {
+              resolve();
+              return;
+            }
+            index += 1;
+            tryNext();
+          };
           script.onerror = () => {
             index += 1;
             tryNext();
@@ -970,162 +977,177 @@
     ]);
 
     const exportToPpt = async () => {
-      try {
-        updateExportStatus('Loading export tools…', ['Fetching the PowerPoint library.']);
-        await loadPptxGen();
-      } catch (error) {
-        console.error('PowerPoint export library failed to load.', error);
-        alert('PowerPoint export library failed to load. Please refresh and try again.');
-        return;
-      }
-
       const exportStatus = document.getElementById('exportStatus');
       const exportButton = document.getElementById('exportPpt');
       exportButton.disabled = true;
       exportButton.textContent = 'Exporting...';
       exportStatus?.classList.add('is-active');
-      updateExportStatus('Preparing the slide…', [
-        'Initializing the PowerPoint document.',
-        'Sizing the slide layout.',
-        'Calculating icon positions.'
-      ]);
-      await waitForFrame();
-
-      updateExportStatus('Building the slide canvas…', ['Creating a new slide.', 'Adding the title.']);
-      const pptx = new PptxGenJS();
-      pptx.layout = 'LAYOUT_WIDE';
-
-      const slide = pptx.addSlide();
-      slide.addText('Overhead Ratio Visual', { x: 0.6, y: 0.2, w: 12.3, h: 0.4, fontSize: 18, bold: true, color: '1F2933' });
-
-      const slideWidth = 13.3;
-      const leftPadding = 0.6;
-      const rightPadding = 0.6;
-      const usableWidth = slideWidth - leftPadding - rightPadding;
-      const columnWidth = usableWidth / Math.max(1, state.categories.length);
-      const iconSize = 0.7;
-      const iconGap = 0.1;
-      const aboveRows = state.rowsAbove;
-      const belowRows = state.rowsBelow;
-      const lineY = 3.4;
-      const aboveBottomPadding = 0.2;
-      const belowTopPadding = 0.3;
-      const aboveRowHeight = aboveRows * (iconSize + iconGap) - iconGap;
-      const aboveIconsTop = lineY - aboveBottomPadding - aboveRowHeight;
-
-      updateExportStatus('Calculating layout metrics…', [
-        `Slide width: ${slideWidth} in.`,
-        `Columns: ${state.categories.length}.`,
-        `Above rows: ${aboveRows}, below rows: ${belowRows}.`
-      ]);
-      await waitForFrame();
-
-      updateExportStatus('Placing icons above the line…', [
-        `${state.categories.length} categories detected.`,
-        `Icon size: ${iconSize} in.`,
-        `Gap: ${iconGap} in.`
-      ]);
-      await waitForFrame();
-
-      for (const [index, category] of state.categories.entries()) {
-        const columnX = leftPadding + columnWidth * index;
-        const label = getCategoryLabel(category);
-        const count = Number(category.counts?.above || 0);
-        const iconsPerRow = Math.max(1, Math.ceil(count / aboveRows));
-        updateExportStatus('Placing icons above the line…', [
-          `Category ${index + 1} of ${state.categories.length}: ${label}.`,
-          `Icons above: ${count}.`,
-          `Icons per row: ${iconsPerRow}.`
-        ]);
-        await waitForFrame();
-
-        slide.addText(label, {
-          x: columnX,
-          y: 0.8,
-          w: columnWidth,
-          h: 0.3,
-          fontSize: 12,
-          align: 'center',
-          color: '4B5563'
-        });
-
-        for (let i = 0; i < count; i += 1) {
-          const row = aboveRows - 1 - Math.floor(i / iconsPerRow);
-          const col = i % iconsPerRow;
-          const x = columnX + col * (iconSize + iconGap) + (columnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
-          const y = aboveIconsTop + row * (iconSize + iconGap);
-          slide.addImage({ data: getCategoryImage(category), x, y, w: iconSize, h: iconSize });
-        }
-      }
-
-      updateExportStatus('Drawing the divider line…', [
-        'Adding the center line.',
-        `Divider position: ${lineY} in.`
-      ]);
-      await waitForFrame();
-
-      slide.addShape(pptx.ShapeType.line, {
-        x: leftPadding,
-        y: lineY,
-        w: usableWidth,
-        h: 0,
-        line: { color: '111827', width: 2 }
-      });
-
-      const belowCategories = state.categories.filter((category) => Number(category.counts?.below || 0) > 0);
-      const belowColumnWidth = usableWidth / Math.max(1, belowCategories.length);
-
-      updateExportStatus('Filtering below-line categories…', [
-        `${belowCategories.length} categories below the line.`,
-        `Columns below: ${belowCategories.length || 1}.`
-      ]);
-      await waitForFrame();
-
-      updateExportStatus('Placing icons below the line…', [
-        `${belowCategories.length} categories below the line.`,
-        `Icon size: ${iconSize} in.`,
-        `Gap: ${iconGap} in.`
-      ]);
-      await waitForFrame();
-
-      for (const [index, category] of belowCategories.entries()) {
-        const columnX = leftPadding + belowColumnWidth * index;
-        const count = Number(category.counts?.below || 0);
-        const iconsPerRow = Math.max(1, Math.ceil(count / belowRows));
-        updateExportStatus('Placing icons below the line…', [
-          `Category ${index + 1} of ${belowCategories.length}: ${getCategoryLabel(category)}.`,
-          `Icons below: ${count}.`,
-          `Icons per row: ${iconsPerRow}.`
-        ]);
-        await waitForFrame();
-
-        for (let i = 0; i < count; i += 1) {
-          const row = Math.floor(i / iconsPerRow);
-          const col = i % iconsPerRow;
-          const x = columnX + col * (iconSize + iconGap) + (belowColumnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
-          const y = lineY + belowTopPadding + row * (iconSize + iconGap);
-          slide.addImage({ data: getCategoryImage(category), x, y, w: iconSize, h: iconSize });
-        }
-
-        const belowLabelY = lineY + belowTopPadding + belowRows * (iconSize + iconGap) + 0.1;
-        slide.addText(getCategoryLabel(category), {
-          x: columnX,
-          y: belowLabelY,
-          w: belowColumnWidth,
-          h: 0.3,
-          fontSize: 10,
-          align: 'center',
-          color: '4B5563'
-        });
-      }
 
       try {
+        updateExportStatus('Loading export tools…', ['Fetching the PowerPoint library.']);
+        await loadPptxGen();
+
+        updateExportStatus('Preparing the slide…', [
+          'Initializing the PowerPoint document.',
+          'Sizing the slide layout.',
+          'Calculating icon positions.'
+        ]);
+        await waitForFrame();
+
+        updateExportStatus('Building the slide canvas…', [
+          'Creating the presentation object.',
+          'Setting slide layout to wide.'
+        ]);
+        const pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_WIDE';
+        await waitForFrame();
+
+        updateExportStatus('Building the slide canvas…', [
+          'Presentation ready.',
+          'Creating a new slide.'
+        ]);
+        const slide = pptx.addSlide();
+        await waitForFrame();
+
+        const titleText = 'Overhead Ratio Visual';
+        updateExportStatus('Building the slide canvas…', [
+          'Slide created.',
+          `Adding the title (${titleText.length} characters).`,
+          'Applying title font and color.'
+        ]);
+        slide.addText(titleText, { x: 0.6, y: 0.2, w: 12.3, h: 0.4, fontSize: 18, bold: true, color: '1F2933' });
+
+        const slideWidth = 13.3;
+        const leftPadding = 0.6;
+        const rightPadding = 0.6;
+        const usableWidth = slideWidth - leftPadding - rightPadding;
+        const columnWidth = usableWidth / Math.max(1, state.categories.length);
+        const iconSize = 0.7;
+        const iconGap = 0.1;
+        const aboveRows = state.rowsAbove;
+        const belowRows = state.rowsBelow;
+        const lineY = 3.4;
+        const aboveBottomPadding = 0.2;
+        const belowTopPadding = 0.3;
+        const aboveRowHeight = aboveRows * (iconSize + iconGap) - iconGap;
+        const aboveIconsTop = lineY - aboveBottomPadding - aboveRowHeight;
+
+        updateExportStatus('Calculating layout metrics…', [
+          `Slide width: ${slideWidth} in.`,
+          `Columns: ${state.categories.length}.`,
+          `Above rows: ${aboveRows}, below rows: ${belowRows}.`
+        ]);
+        await waitForFrame();
+
+        updateExportStatus('Placing icons above the line…', [
+          `${state.categories.length} categories detected.`,
+          `Icon size: ${iconSize} in.`,
+          `Gap: ${iconGap} in.`
+        ]);
+        await waitForFrame();
+
+        for (const [index, category] of state.categories.entries()) {
+          const columnX = leftPadding + columnWidth * index;
+          const label = getCategoryLabel(category);
+          const count = Number(category.counts?.above || 0);
+          const iconsPerRow = Math.max(1, Math.ceil(count / aboveRows));
+          updateExportStatus('Placing icons above the line…', [
+            `Category ${index + 1} of ${state.categories.length}: ${label}.`,
+            `Icons above: ${count}.`,
+            `Icons per row: ${iconsPerRow}.`
+          ]);
+          await waitForFrame();
+
+          slide.addText(label, {
+            x: columnX,
+            y: 0.8,
+            w: columnWidth,
+            h: 0.3,
+            fontSize: 12,
+            align: 'center',
+            color: '4B5563'
+          });
+
+          for (let i = 0; i < count; i += 1) {
+            const row = aboveRows - 1 - Math.floor(i / iconsPerRow);
+            const col = i % iconsPerRow;
+            const x = columnX + col * (iconSize + iconGap) + (columnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
+            const y = aboveIconsTop + row * (iconSize + iconGap);
+            slide.addImage({ data: getCategoryImage(category), x, y, w: iconSize, h: iconSize });
+          }
+        }
+
+        updateExportStatus('Drawing the divider line…', [
+          'Adding the center line.',
+          `Divider position: ${lineY} in.`
+        ]);
+        await waitForFrame();
+
+        slide.addShape(pptx.ShapeType.line, {
+          x: leftPadding,
+          y: lineY,
+          w: usableWidth,
+          h: 0,
+          line: { color: '111827', width: 2 }
+        });
+
+        const belowCategories = state.categories.filter((category) => Number(category.counts?.below || 0) > 0);
+        const belowColumnWidth = usableWidth / Math.max(1, belowCategories.length);
+
+        updateExportStatus('Filtering below-line categories…', [
+          `${belowCategories.length} categories below the line.`,
+          `Columns below: ${belowCategories.length || 1}.`
+        ]);
+        await waitForFrame();
+
+        updateExportStatus('Placing icons below the line…', [
+          `${belowCategories.length} categories below the line.`,
+          `Icon size: ${iconSize} in.`,
+          `Gap: ${iconGap} in.`
+        ]);
+        await waitForFrame();
+
+        for (const [index, category] of belowCategories.entries()) {
+          const columnX = leftPadding + belowColumnWidth * index;
+          const count = Number(category.counts?.below || 0);
+          const iconsPerRow = Math.max(1, Math.ceil(count / belowRows));
+          updateExportStatus('Placing icons below the line…', [
+            `Category ${index + 1} of ${belowCategories.length}: ${getCategoryLabel(category)}.`,
+            `Icons below: ${count}.`,
+            `Icons per row: ${iconsPerRow}.`
+          ]);
+          await waitForFrame();
+
+          for (let i = 0; i < count; i += 1) {
+            const row = Math.floor(i / iconsPerRow);
+            const col = i % iconsPerRow;
+            const x = columnX + col * (iconSize + iconGap) + (belowColumnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
+            const y = lineY + belowTopPadding + row * (iconSize + iconGap);
+            slide.addImage({ data: getCategoryImage(category), x, y, w: iconSize, h: iconSize });
+          }
+
+          const belowLabelY = lineY + belowTopPadding + belowRows * (iconSize + iconGap) + 0.1;
+          slide.addText(getCategoryLabel(category), {
+            x: columnX,
+            y: belowLabelY,
+            w: belowColumnWidth,
+            h: 0.3,
+            fontSize: 10,
+            align: 'center',
+            color: '4B5563'
+          });
+        }
+
         updateExportStatus('Generating PowerPoint file…', ['Packaging slides and assets.', 'This can take a few seconds.']);
         await waitForFrame();
         await withTimeout(pptx.writeFile({ fileName: 'overhead-ratio-visual.pptx' }), 30000, 'PowerPoint export timed out.');
       } catch (error) {
         console.error('PowerPoint export failed', error);
-        updateExportStatus('Export failed.', ['Please try again.', 'If the issue persists, refresh the page.']);
+        updateExportStatus('Export failed.', [
+          `Error: ${error.message || 'Unknown error'}.`,
+          'Please try again.',
+          'If the issue persists, refresh the page.'
+        ]);
         alert('PowerPoint export failed. Please try again.');
       } finally {
         exportButton.disabled = false;
