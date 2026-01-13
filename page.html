@@ -982,9 +982,14 @@
       exportButton.disabled = true;
       exportButton.textContent = 'Exporting...';
       exportStatus?.classList.add('is-active');
-      updateExportStatus('Preparing the slide…', ['Sizing the slide layout.', 'Calculating icon positions.']);
+      updateExportStatus('Preparing the slide…', [
+        'Initializing the PowerPoint document.',
+        'Sizing the slide layout.',
+        'Calculating icon positions.'
+      ]);
       await waitForFrame();
 
+      updateExportStatus('Building the slide canvas…', ['Creating a new slide.', 'Adding the title.']);
       const pptx = new PptxGenJS();
       pptx.layout = 'LAYOUT_WIDE';
 
@@ -1006,12 +1011,32 @@
       const aboveRowHeight = aboveRows * (iconSize + iconGap) - iconGap;
       const aboveIconsTop = lineY - aboveBottomPadding - aboveRowHeight;
 
-      updateExportStatus('Placing icons above the line…', [`${state.categories.length} categories detected.`]);
+      updateExportStatus('Calculating layout metrics…', [
+        `Slide width: ${slideWidth} in.`,
+        `Columns: ${state.categories.length}.`,
+        `Above rows: ${aboveRows}, below rows: ${belowRows}.`
+      ]);
       await waitForFrame();
 
-      state.categories.forEach((category, index) => {
+      updateExportStatus('Placing icons above the line…', [
+        `${state.categories.length} categories detected.`,
+        `Icon size: ${iconSize} in.`,
+        `Gap: ${iconGap} in.`
+      ]);
+      await waitForFrame();
+
+      for (const [index, category] of state.categories.entries()) {
         const columnX = leftPadding + columnWidth * index;
         const label = getCategoryLabel(category);
+        const count = Number(category.counts?.above || 0);
+        const iconsPerRow = Math.max(1, Math.ceil(count / aboveRows));
+        updateExportStatus('Placing icons above the line…', [
+          `Category ${index + 1} of ${state.categories.length}: ${label}.`,
+          `Icons above: ${count}.`,
+          `Icons per row: ${iconsPerRow}.`
+        ]);
+        await waitForFrame();
+
         slide.addText(label, {
           x: columnX,
           y: 0.8,
@@ -1022,8 +1047,6 @@
           color: '4B5563'
         });
 
-        const count = Number(category.counts?.above || 0);
-        const iconsPerRow = Math.max(1, Math.ceil(count / aboveRows));
         for (let i = 0; i < count; i += 1) {
           const row = aboveRows - 1 - Math.floor(i / iconsPerRow);
           const col = i % iconsPerRow;
@@ -1031,9 +1054,12 @@
           const y = aboveIconsTop + row * (iconSize + iconGap);
           slide.addImage({ data: category.image, x, y, w: iconSize, h: iconSize });
         }
-      });
+      }
 
-      updateExportStatus('Drawing the divider line…', ['Adding the center line.']);
+      updateExportStatus('Drawing the divider line…', [
+        'Adding the center line.',
+        `Divider position: ${lineY} in.`
+      ]);
       await waitForFrame();
 
       slide.addShape(pptx.ShapeType.line, {
@@ -1047,13 +1073,30 @@
       const belowCategories = state.categories.filter((category) => Number(category.counts?.below || 0) > 0);
       const belowColumnWidth = usableWidth / Math.max(1, belowCategories.length);
 
-      updateExportStatus('Placing icons below the line…', [`${belowCategories.length} categories below the line.`]);
+      updateExportStatus('Filtering below-line categories…', [
+        `${belowCategories.length} categories below the line.`,
+        `Columns below: ${belowCategories.length || 1}.`
+      ]);
       await waitForFrame();
 
-      belowCategories.forEach((category, index) => {
+      updateExportStatus('Placing icons below the line…', [
+        `${belowCategories.length} categories below the line.`,
+        `Icon size: ${iconSize} in.`,
+        `Gap: ${iconGap} in.`
+      ]);
+      await waitForFrame();
+
+      for (const [index, category] of belowCategories.entries()) {
         const columnX = leftPadding + belowColumnWidth * index;
         const count = Number(category.counts?.below || 0);
         const iconsPerRow = Math.max(1, Math.ceil(count / belowRows));
+        updateExportStatus('Placing icons below the line…', [
+          `Category ${index + 1} of ${belowCategories.length}: ${getCategoryLabel(category)}.`,
+          `Icons below: ${count}.`,
+          `Icons per row: ${iconsPerRow}.`
+        ]);
+        await waitForFrame();
+
         for (let i = 0; i < count; i += 1) {
           const row = Math.floor(i / iconsPerRow);
           const col = i % iconsPerRow;
@@ -1072,7 +1115,7 @@
           align: 'center',
           color: '4B5563'
         });
-      });
+      }
 
       try {
         updateExportStatus('Generating PowerPoint file…', ['Packaging slides and assets.', 'This can take a few seconds.']);
