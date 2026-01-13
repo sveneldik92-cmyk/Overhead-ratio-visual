@@ -124,13 +124,12 @@
       display: block;
       font-size: 13px;
       line-height: 1.2;
-      min-height: 32px;
       color: var(--text);
       word-break: break-word;
     }
 
     .counts-table__input {
-      width: 100%;
+      width: 72px;
       padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid var(--border);
@@ -189,6 +188,11 @@
 
     .upload input[type="file"] {
       font-size: 12px;
+    }
+
+    .upload__footer {
+      display: flex;
+      justify-content: flex-end;
     }
 
     .preview {
@@ -589,10 +593,8 @@
       const table = document.createElement('table');
       table.className = 'counts-table';
 
-      const labelRow = document.createElement('tr');
-      const inputRow = document.createElement('tr');
-
       state.categories.forEach((category) => {
+        const row = document.createElement('tr');
         const labelCell = document.createElement('th');
         const label = document.createElement('span');
         label.className = 'counts-table__label';
@@ -612,12 +614,10 @@
         });
         inputCell.appendChild(input);
 
-        labelRow.appendChild(labelCell);
-        inputRow.appendChild(inputCell);
+        row.appendChild(labelCell);
+        row.appendChild(inputCell);
+        table.appendChild(row);
       });
-
-      table.appendChild(labelRow);
-      table.appendChild(inputRow);
       container.appendChild(table);
     };
 
@@ -681,9 +681,14 @@
         preview.className = 'preview';
         preview.style.backgroundImage = `url(${category.image})`;
 
+        const footer = document.createElement('div');
+        footer.className = 'upload__footer';
+        footer.appendChild(removeButton);
+
         card.appendChild(header);
         card.appendChild(fileInput);
         card.appendChild(preview);
+        card.appendChild(footer);
         container.appendChild(card);
       });
     };
