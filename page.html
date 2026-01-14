@@ -327,12 +327,8 @@
     }
 
     @keyframes export-progress {
-      0% {
-        transform: translateX(-100%);
-      }
-      100% {
-        transform: translateX(100%);
-      }
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
     }
 
     .preview-pane {
@@ -478,7 +474,9 @@
       }
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.min.js"></script>
+
+  <!-- FIX: Load the BROWSER BUNDLE build so writeFile works reliably in GitHub Pages -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.min.js"></script>
 </head>
 <body>
   <div class="app">
@@ -900,7 +898,14 @@
       saveDraft();
     };
 
+    // FIX: Prefer loading the BUNDLE build for browsers.
+    // (The bundle includes the pieces needed for writeFile/download.)
     const pptxScriptSources = [
+      'https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.min.js',
+      'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.min.js',
+      'https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.min.js',
+
+      // Fallbacks (non-bundle) in case a CDN misbehaves:
       'https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.min.js',
       'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.min.js',
       'https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.min.js'
@@ -986,6 +991,12 @@
       try {
         updateExportStatus('Loading export tools…', ['Fetching the PowerPoint library.']);
         await loadPptxGen();
+
+        // Extra guard: if a non-bundle build loaded and the environment is missing download helpers,
+        // fail with a useful error instead of a vague rejection.
+        if (typeof PptxGenJS === 'undefined') {
+          throw new Error('PptxGenJS is not available after loading.');
+        }
 
         updateExportStatus('Preparing the slide…', [
           'Initializing the PowerPoint document.',
@@ -1140,7 +1151,13 @@
 
         updateExportStatus('Generating PowerPoint file…', ['Packaging slides and assets.', 'This can take a few seconds.']);
         await waitForFrame();
-        await withTimeout(pptx.writeFile({ fileName: 'overhead-ratio-visual.pptx' }), 30000, 'PowerPoint export timed out.');
+
+        // writeFile() is the step that used to fail on GitHub Pages when the non-bundle build was loaded.
+        await withTimeout(
+          pptx.writeFile({ fileName: 'overhead-ratio-visual.pptx' }),
+          30000,
+          'PowerPoint export timed out.'
+        );
       } catch (error) {
         console.error('PowerPoint export failed', error);
         updateExportStatus('Export failed.', [
