@@ -215,6 +215,17 @@
       border-radius: 8px;
       border: 1px solid var(--border);
       font-size: 13px;
+      height: 32px;
+    }
+
+    .upload__select {
+      width: 100%;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      height: 32px;
+      background: #fff;
     }
 
     .upload input[type="file"] {
@@ -681,6 +692,45 @@
           <circle cx="92" cy="60" r="10" stroke="{{color}}" stroke-width="6" fill="none"/>
           <path d="M92 46v6M92 68v6M78 60h6M100 60h6" stroke="{{color}}" stroke-width="5" stroke-linecap="round"/>
         `
+      },
+      {
+        id: 'clipboard',
+        label: 'Clipboard',
+        body: `
+          <circle cx="60" cy="28" r="13" fill="{{color}}" />
+          <path d="M60 46v28" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M42 66h36" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M52 102V74" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M68 102V74" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <rect x="86" y="44" width="18" height="26" rx="2" stroke="{{color}}" stroke-width="4" fill="none"/>
+          <rect x="90" y="40" width="10" height="6" rx="2" fill="{{color}}" />
+        `
+      },
+      {
+        id: 'visor',
+        label: 'Safety Visor',
+        body: `
+          <circle cx="60" cy="30" r="14" fill="{{color}}" />
+          <rect x="38" y="18" width="44" height="10" rx="5" fill="{{color}}" />
+          <rect x="40" y="30" width="40" height="10" rx="5" stroke="{{color}}" stroke-width="4" fill="none"/>
+          <path d="M60 46v32" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M36 68h48" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M50 102V76" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M70 102V76" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+        `
+      },
+      {
+        id: 'toolbox',
+        label: 'Toolbox',
+        body: `
+          <circle cx="60" cy="28" r="13" fill="{{color}}" />
+          <path d="M60 46v24" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M40 66h40" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M50 102V72" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M70 102V72" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <rect x="82" y="58" width="26" height="16" rx="3" stroke="{{color}}" stroke-width="4" fill="none"/>
+          <rect x="90" y="54" width="10" height="6" rx="2" fill="{{color}}" />
+        `
       }
     ];
     const defaultCategories = [
@@ -989,7 +1039,7 @@
         header.appendChild(labelInput);
 
         const iconSelect = document.createElement('select');
-        iconSelect.className = 'upload__label';
+        iconSelect.className = 'upload__select';
         iconLibrary.forEach((icon) => {
           const option = document.createElement('option');
           option.value = icon.id;
@@ -1320,13 +1370,13 @@
             const col = i % iconsPerRow;
             const x = columnX + col * (iconSize + iconGap) + (columnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
             const y = aboveIconsTop + row * (iconSize + iconGap);
-            const fractionA = getSlotFraction(counts.a, i);
-            if (fractionA > 0) {
-              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.a, fractionA), x, y, w: iconSize, h: iconSize });
-            }
             const fractionB = getSlotFraction(counts.b, i);
             if (fractionB > 0) {
               slide.addImage({ data: getIconDataUrl(category.iconId, productColors.b, fractionB), x, y, w: iconSize, h: iconSize });
+            }
+            const fractionA = getSlotFraction(counts.a, i);
+            if (fractionA > 0) {
+              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.a, fractionA), x, y, w: iconSize, h: iconSize });
             }
           }
         }
@@ -1380,13 +1430,13 @@
             const col = i % iconsPerRow;
             const x = columnX + col * (iconSize + iconGap) + (belowColumnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
             const y = lineY + belowTopPadding + row * (iconSize + iconGap);
-            const fractionA = getSlotFraction(counts.a, i);
-            if (fractionA > 0) {
-              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.a, fractionA), x, y, w: iconSize, h: iconSize });
-            }
             const fractionB = getSlotFraction(counts.b, i);
             if (fractionB > 0) {
               slide.addImage({ data: getIconDataUrl(category.iconId, productColors.b, fractionB), x, y, w: iconSize, h: iconSize });
+            }
+            const fractionA = getSlotFraction(counts.a, i);
+            if (fractionA > 0) {
+              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.a, fractionA), x, y, w: iconSize, h: iconSize });
             }
           }
 
