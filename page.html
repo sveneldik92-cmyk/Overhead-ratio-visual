@@ -120,6 +120,13 @@
       vertical-align: top;
     }
 
+    .counts-table thead th {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
     .counts-table td {
       text-align: right;
     }
@@ -231,6 +238,30 @@
       background-size: contain;
       background-repeat: no-repeat;
       background-position: center;
+    }
+
+    .preview--dual {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      padding: 8px;
+      background: #f9fafb;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .preview__item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .preview__icon {
+      width: 48px;
+      height: 48px;
     }
 
     .actions {
@@ -425,6 +456,12 @@
       justify-content: center;
     }
 
+    .figure__icon-cell {
+      width: 64px;
+      height: 64px;
+      position: relative;
+    }
+
     .figure__line {
       height: 3px;
       background: #111827;
@@ -446,21 +483,57 @@
     }
 
     .icon-card {
-      width: 70px;
-      height: 70px;
-      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #fff;
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
     }
 
     .icon-card img {
-      width: 60px;
-      height: 60px;
+      width: 100%;
+      height: 100%;
       object-fit: contain;
+    }
+
+    .icon-card--product-a {
+      z-index: 2;
+    }
+
+    .icon-card--product-b {
+      z-index: 1;
+      opacity: 0.85;
+    }
+
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .legend__item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend__swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .legend__swatch--a {
+      background: #111827;
+    }
+
+    .legend__swatch--b {
+      background: #9ca3af;
     }
 
     @media (max-width: 1100px) {
@@ -491,7 +564,7 @@
 
       <section class="card">
         <h2>Above the Line Counts</h2>
-        <p class="card__hint">Choose how many images appear in each category above the line.</p>
+        <p class="card__hint">Choose how many icons appear in each category above the line.</p>
         <div id="counts-above"></div>
         <div class="counts-divider" role="presentation"></div>
         <label class="field field--row">
@@ -502,7 +575,7 @@
 
       <section class="card">
         <h2>Below the Line Counts</h2>
-        <p class="card__hint">Choose how many images appear in each category below the divider.</p>
+        <p class="card__hint">Choose how many icons appear in each category below the divider.</p>
         <div id="counts-below"></div>
         <div class="counts-divider" role="presentation"></div>
         <label class="field field--row">
@@ -513,10 +586,10 @@
 
       <section class="card">
         <div class="card__header">
-          <h2>Image Library &amp; Labels</h2>
+          <h2>Stick Figure Library &amp; Labels</h2>
           <button class="ghost" id="add-category" type="button">Add Label</button>
         </div>
-        <p class="card__hint">Upload images and edit labels together. Add or remove categories as needed.</p>
+        <p class="card__hint">Choose stick figure icons and edit labels together. Add or remove categories as needed.</p>
         <div class="grid grid--uploads" id="category-library"></div>
       </section>
 
@@ -540,7 +613,16 @@
     <main class="preview-pane">
       <header class="preview-pane__header">
         <h2>Live Output</h2>
-        <p>Aligned layout rendered from your settings.</p>
+        <div class="legend">
+          <div class="legend__item">
+            <span class="legend__swatch legend__swatch--a" aria-hidden="true"></span>
+            <span>Product A</span>
+          </div>
+          <div class="legend__item">
+            <span class="legend__swatch legend__swatch--b" aria-hidden="true"></span>
+            <span>Product B</span>
+          </div>
+        </div>
       </header>
       <section class="figure" id="figure">
         <div class="figure__above" id="figure-above"></div>
@@ -556,22 +638,58 @@
       return `data:image/svg+xml;base64,${encoded}`;
     };
 
-    const defaultSvg = `
-      <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-        <rect width="120" height="120" rx="18" fill="#EEF2F7" />
-        <path d="M35 70c0-12 10-22 22-22s22 10 22 22" stroke="#B3BCCB" stroke-width="6" fill="none"/>
-        <circle cx="57" cy="42" r="14" fill="#B3BCCB"/>
-      </svg>
-    `;
+    const productColors = {
+      a: '#111827',
+      b: '#9ca3af'
+    };
 
-    const defaultImage = svgToDataUrl(defaultSvg);
+    const iconLibrary = [
+      {
+        id: 'hard-hat',
+        label: 'Hard Hat',
+        body: `
+          <circle cx="60" cy="30" r="14" fill="{{color}}" />
+          <rect x="38" y="16" width="44" height="12" rx="6" fill="{{color}}" />
+          <path d="M60 46v34" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M34 68h52" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M48 102V76" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M72 102V76" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+        `
+      },
+      {
+        id: 'wrench',
+        label: 'Wrench Tech',
+        body: `
+          <circle cx="60" cy="28" r="13" fill="{{color}}" />
+          <path d="M60 46v28" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M42 66h36" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M52 102V74" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M68 102V74" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M80 38l14-10" stroke="{{color}}" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="98" cy="28" r="5" fill="{{color}}" />
+        `
+      },
+      {
+        id: 'gear',
+        label: 'Gear Lead',
+        body: `
+          <circle cx="60" cy="28" r="13" fill="{{color}}" />
+          <path d="M60 46v26" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M36 66h48" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M50 102V72" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M70 102V72" stroke="{{color}}" stroke-width="8" stroke-linecap="round"/>
+          <circle cx="92" cy="60" r="10" stroke="{{color}}" stroke-width="6" fill="none"/>
+          <path d="M92 46v6M92 68v6M78 60h6M100 60h6" stroke="{{color}}" stroke-width="5" stroke-linecap="round"/>
+        `
+      }
+    ];
     const defaultCategories = [
-      { id: 'manufacturing-omr', label: 'Manufacturing OMR', counts: { above: 3, below: 0 }, image: defaultImage },
-      { id: 'install-omr', label: 'Install OMR', counts: { above: 3, below: 0 }, image: defaultImage },
-      { id: 'engineering', label: 'Engineering', counts: { above: 3, below: 0 }, image: defaultImage },
-      { id: 'plf', label: 'PL&F', counts: { above: 2, below: 0 }, image: defaultImage },
-      { id: 'safety', label: 'Safety', counts: { above: 2, below: 0 }, image: defaultImage },
-      { id: 'mfg-install', label: 'Manufacturing & Install Engineers', counts: { above: 0, below: 10 }, image: defaultImage }
+      { id: 'manufacturing-omr', label: 'Manufacturing OMR', counts: { above: { a: 3, b: 0 }, below: { a: 0, b: 0 } }, iconId: 'hard-hat' },
+      { id: 'install-omr', label: 'Install OMR', counts: { above: { a: 3, b: 0 }, below: { a: 0, b: 0 } }, iconId: 'hard-hat' },
+      { id: 'engineering', label: 'Engineering', counts: { above: { a: 3, b: 0 }, below: { a: 0, b: 0 } }, iconId: 'gear' },
+      { id: 'plf', label: 'PL&F', counts: { above: { a: 2, b: 0 }, below: { a: 0, b: 0 } }, iconId: 'wrench' },
+      { id: 'safety', label: 'Safety', counts: { above: { a: 2, b: 0 }, below: { a: 0, b: 0 } }, iconId: 'hard-hat' },
+      { id: 'mfg-install', label: 'Manufacturing & Install Engineers', counts: { above: { a: 0, b: 0 }, below: { a: 10, b: 0 } }, iconId: 'gear' }
     ];
 
     const state = {
@@ -580,29 +698,68 @@
       rowsBelow: 2
     };
 
-    const draftKey = 'overhead-ratio-draft-v1';
+    const draftKey = 'overhead-ratio-draft-v2';
 
-    const normalizeImageData = (image) => {
-      if (!image) return defaultImage;
-      if (typeof image !== 'string') return defaultImage;
-      if (image.startsWith('data:image/svg+xml') && !image.includes('base64,')) {
-        const rawSvg = decodeURIComponent(image.split(',')[1] || '');
-        return svgToDataUrl(rawSvg);
-      }
-      return image;
+    const normalizeNumber = (value) => {
+      const parsed = Number.parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const normalizeCounts = (counts) => {
+      const above = counts?.above;
+      const below = counts?.below;
+      const normalizeSide = (side) => {
+        if (typeof side === 'number') {
+          return { a: normalizeNumber(side), b: 0 };
+        }
+        return {
+          a: normalizeNumber(side?.a ?? 0),
+          b: normalizeNumber(side?.b ?? 0)
+        };
+      };
+      return {
+        above: normalizeSide(above),
+        below: normalizeSide(below)
+      };
     };
 
     const normalizeCategory = (category) => ({
       id: category.id || `category-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       label: category.label || 'New Category',
-      counts: {
-        above: Number(category.counts?.above ?? 0),
-        below: Number(category.counts?.below ?? 0)
-      },
-      image: normalizeImageData(category.image) || defaultImage
+      counts: normalizeCounts(category.counts),
+      iconId: iconLibrary.some((icon) => icon.id === category.iconId) ? category.iconId : iconLibrary[0].id
     });
 
-    const getCategoryImage = (category) => normalizeImageData(category.image) || defaultImage;
+    const getIconDefinition = (iconId) => iconLibrary.find((icon) => icon.id === iconId) || iconLibrary[0];
+
+    const buildIconSvg = (iconId, color, fraction = 1) => {
+      const icon = getIconDefinition(iconId);
+      const safeFraction = Math.min(1, Math.max(0, fraction));
+      const body = icon.body.replaceAll('{{color}}', color);
+      if (safeFraction >= 0.999) {
+        return `
+          <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            ${body}
+          </svg>
+        `;
+      }
+      const clipHeight = 120 * safeFraction;
+      const clipY = 120 - clipHeight;
+      return `
+        <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <clipPath id="clip">
+              <rect x="0" y="${clipY}" width="120" height="${clipHeight}" />
+            </clipPath>
+          </defs>
+          <g clip-path="url(#clip)">
+            ${body}
+          </g>
+        </svg>
+      `;
+    };
+
+    const getIconDataUrl = (iconId, color, fraction = 1) => svgToDataUrl(buildIconSvg(iconId, color, fraction));
 
     const saveDraft = () => {
       const draft = {
@@ -614,7 +771,7 @@
     };
 
     const loadDraft = () => {
-      const raw = localStorage.getItem(draftKey);
+      const raw = localStorage.getItem(draftKey) || localStorage.getItem('overhead-ratio-draft-v1');
       if (!raw) return;
       try {
         const draft = JSON.parse(raw);
@@ -648,23 +805,12 @@
                 safety: draft.counts.safety,
                 'mfg-install': draft.counts.below
               };
+              const mappedCount = normalizeNumber(countMap[category.id] ?? 0);
               if (category.id === 'mfg-install') {
-                category.counts.below = Number(countMap[category.id] ?? category.counts.below);
+                category.counts.below = { a: mappedCount, b: 0 };
               } else {
-                category.counts.above = Number(countMap[category.id] ?? category.counts.above);
+                category.counts.above = { a: mappedCount, b: 0 };
               }
-            }
-
-            if (draft?.images) {
-              const imageMap = {
-                'manufacturing-omr': draft.images.manufacturing,
-                'install-omr': draft.images.install,
-                engineering: draft.images.engineering,
-                plf: draft.images.plf,
-                safety: draft.images.safety,
-                'mfg-install': draft.images.below
-              };
-              category.image = normalizeImageData(imageMap[category.id]) ?? category.image;
             }
             return category;
           });
@@ -678,11 +824,11 @@
       }
     };
 
-    const createIcon = (src, label) => {
+    const createIcon = (iconId, label, productKey, fraction = 1) => {
       const wrapper = document.createElement('div');
-      wrapper.className = 'icon-card';
+      wrapper.className = `icon-card icon-card--product-${productKey}`;
       const img = document.createElement('img');
-      img.src = src;
+      img.src = getIconDataUrl(iconId, productColors[productKey], fraction);
       img.alt = label;
       wrapper.appendChild(img);
       return wrapper;
@@ -690,19 +836,51 @@
 
     const getCategoryLabel = (category) => category.label?.trim() || 'Untitled';
 
-    const buildIconRows = (count, rows, iconSrc, label, fillFromBottom) => {
+    const getSlotCount = (count) => {
+      const safe = Math.max(0, count);
+      const whole = Math.floor(safe);
+      const fraction = safe - whole;
+      return whole + (fraction > 0 ? 1 : 0);
+    };
+
+    const getSlotFraction = (count, index) => {
+      const safe = Math.max(0, count);
+      const whole = Math.floor(safe);
+      const fraction = safe - whole;
+      if (index < whole) return 1;
+      if (index === whole && fraction > 0) return fraction;
+      return 0;
+    };
+
+    const buildIconRows = (counts, rows, iconId, label, fillFromBottom) => {
       const safeRows = Math.max(1, rows);
-      const iconsPerRow = Math.max(1, Math.ceil(count / safeRows));
+      const slotsA = getSlotCount(counts.a);
+      const slotsB = getSlotCount(counts.b);
+      const maxSlots = Math.max(slotsA, slotsB);
+      const iconsPerRow = Math.max(1, Math.ceil(maxSlots / safeRows));
       const rowElements = Array.from({ length: safeRows }, () => {
         const row = document.createElement('div');
         row.className = 'figure__icon-row';
         return row;
       });
 
-      for (let i = 0; i < count; i += 1) {
+      for (let i = 0; i < maxSlots; i += 1) {
         const baseRow = Math.floor(i / iconsPerRow);
         const rowIndex = fillFromBottom ? safeRows - 1 - baseRow : baseRow;
-        rowElements[rowIndex].appendChild(createIcon(iconSrc, label));
+        const cell = document.createElement('div');
+        cell.className = 'figure__icon-cell';
+
+        const fractionA = getSlotFraction(counts.a, i);
+        if (fractionA > 0) {
+          cell.appendChild(createIcon(iconId, label, 'a', fractionA));
+        }
+
+        const fractionB = getSlotFraction(counts.b, i);
+        if (fractionB > 0) {
+          cell.appendChild(createIcon(iconId, label, 'b', fractionB));
+        }
+
+        rowElements[rowIndex].appendChild(cell);
       }
 
       return rowElements;
@@ -715,6 +893,18 @@
       const table = document.createElement('table');
       table.className = 'counts-table';
 
+      const header = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      headerRow.innerHTML = `
+        <th>Category</th>
+        <th>Product A</th>
+        <th>Product B</th>
+      `;
+      header.appendChild(headerRow);
+      table.appendChild(header);
+
+      const body = document.createElement('tbody');
+
       state.categories.forEach((category) => {
         const row = document.createElement('tr');
         const labelCell = document.createElement('th');
@@ -723,23 +913,40 @@
         label.textContent = getCategoryLabel(category);
         labelCell.appendChild(label);
 
-        const inputCell = document.createElement('td');
-        const input = document.createElement('input');
-        input.className = 'counts-table__input';
-        input.type = 'number';
-        input.min = '0';
-        input.value = category.counts[position] ?? 0;
-        input.addEventListener('input', () => {
-          category.counts[position] = Number(input.value || 0);
+        const inputCellA = document.createElement('td');
+        const inputA = document.createElement('input');
+        inputA.className = 'counts-table__input';
+        inputA.type = 'number';
+        inputA.min = '0';
+        inputA.step = '0.1';
+        inputA.value = category.counts[position].a ?? 0;
+        inputA.addEventListener('input', () => {
+          category.counts[position].a = normalizeNumber(inputA.value || 0);
           renderFigure();
           saveDraft();
         });
-        inputCell.appendChild(input);
+        inputCellA.appendChild(inputA);
+
+        const inputCellB = document.createElement('td');
+        const inputB = document.createElement('input');
+        inputB.className = 'counts-table__input';
+        inputB.type = 'number';
+        inputB.min = '0';
+        inputB.step = '0.1';
+        inputB.value = category.counts[position].b ?? 0;
+        inputB.addEventListener('input', () => {
+          category.counts[position].b = normalizeNumber(inputB.value || 0);
+          renderFigure();
+          saveDraft();
+        });
+        inputCellB.appendChild(inputB);
 
         row.appendChild(labelCell);
-        row.appendChild(inputCell);
-        table.appendChild(row);
+        row.appendChild(inputCellA);
+        row.appendChild(inputCellB);
+        body.appendChild(row);
       });
+      table.appendChild(body);
       container.appendChild(table);
     };
 
@@ -781,33 +988,60 @@
 
         header.appendChild(labelInput);
 
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = 'image/*';
-        fileInput.addEventListener('change', (event) => {
-          const file = event.target.files?.[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (loadEvent) => {
-            const result = loadEvent.target.result;
-            category.image = result;
-            preview.style.backgroundImage = `url(${result})`;
-            renderFigure();
-            saveDraft();
-          };
-          reader.readAsDataURL(file);
+        const iconSelect = document.createElement('select');
+        iconSelect.className = 'upload__label';
+        iconLibrary.forEach((icon) => {
+          const option = document.createElement('option');
+          option.value = icon.id;
+          option.textContent = icon.label;
+          if (icon.id === category.iconId) option.selected = true;
+          iconSelect.appendChild(option);
         });
-
-        const preview = document.createElement('div');
-        preview.className = 'preview';
-        preview.style.backgroundImage = `url(${getCategoryImage(category)})`;
+        iconSelect.addEventListener('change', () => {
+          category.iconId = iconSelect.value;
+          updatePreview();
+          renderFigure();
+          saveDraft();
+        });
 
         const footer = document.createElement('div');
         footer.className = 'upload__footer';
         footer.appendChild(removeButton);
 
+        const preview = document.createElement('div');
+        preview.className = 'preview--dual';
+
+        const previewA = document.createElement('div');
+        previewA.className = 'preview__item';
+        const previewAIcon = document.createElement('img');
+        previewAIcon.className = 'preview__icon';
+        previewAIcon.alt = 'Product A preview';
+        const previewALabel = document.createElement('span');
+        previewALabel.textContent = 'Product A';
+        previewA.appendChild(previewAIcon);
+        previewA.appendChild(previewALabel);
+
+        const previewB = document.createElement('div');
+        previewB.className = 'preview__item';
+        const previewBIcon = document.createElement('img');
+        previewBIcon.className = 'preview__icon';
+        previewBIcon.alt = 'Product B preview';
+        const previewBLabel = document.createElement('span');
+        previewBLabel.textContent = 'Product B';
+        previewB.appendChild(previewBIcon);
+        previewB.appendChild(previewBLabel);
+
+        preview.appendChild(previewA);
+        preview.appendChild(previewB);
+
+        const updatePreview = () => {
+          previewAIcon.src = getIconDataUrl(category.iconId, productColors.a);
+          previewBIcon.src = getIconDataUrl(category.iconId, productColors.b);
+        };
+        updatePreview();
+
         card.appendChild(header);
-        card.appendChild(fileInput);
+        card.appendChild(iconSelect);
         card.appendChild(preview);
         card.appendChild(footer);
         container.appendChild(card);
@@ -841,7 +1075,7 @@
       const container = document.getElementById('figure-above');
       container.innerHTML = '';
       const rowsAbove = state.rowsAbove;
-      const categories = state.categories.filter((category) => Number(category.counts?.above || 0) > 0);
+      const categories = state.categories.filter((category) => Math.max(category.counts?.above?.a || 0, category.counts?.above?.b || 0) > 0);
 
       categories.forEach((category) => {
         const column = document.createElement('div');
@@ -853,10 +1087,9 @@
         title.textContent = label;
         column.appendChild(title);
 
-        const count = Number(category.counts?.above || 0);
         const iconGrid = document.createElement('div');
         iconGrid.className = 'figure__icon-grid';
-        const iconRows = buildIconRows(count, rowsAbove, getCategoryImage(category), label, true);
+        const iconRows = buildIconRows(category.counts.above, rowsAbove, category.iconId, label, true);
         iconRows.forEach((row) => iconGrid.appendChild(row));
 
         column.appendChild(iconGrid);
@@ -868,17 +1101,16 @@
       const container = document.getElementById('figure-below');
       container.innerHTML = '';
       const rowsBelow = state.rowsBelow;
-      const categories = state.categories.filter((category) => Number(category.counts?.below || 0) > 0);
+      const categories = state.categories.filter((category) => Math.max(category.counts?.below?.a || 0, category.counts?.below?.b || 0) > 0);
 
       categories.forEach((category) => {
         const column = document.createElement('div');
         column.className = 'figure__column';
 
-        const count = Number(category.counts?.below || 0);
         const iconGrid = document.createElement('div');
         iconGrid.className = 'figure__icon-grid';
         const label = getCategoryLabel(category);
-        const iconRows = buildIconRows(count, rowsBelow, getCategoryImage(category), label, false);
+        const iconRows = buildIconRows(category.counts.below, rowsBelow, category.iconId, label, false);
         iconRows.forEach((row) => iconGrid.appendChild(row));
 
         column.appendChild(iconGrid);
@@ -1032,7 +1264,8 @@
         const leftPadding = 0.6;
         const rightPadding = 0.6;
         const usableWidth = slideWidth - leftPadding - rightPadding;
-        const columnWidth = usableWidth / Math.max(1, state.categories.length);
+        const aboveCategories = state.categories.filter((category) => Math.max(category.counts?.above?.a || 0, category.counts?.above?.b || 0) > 0);
+        const columnWidth = usableWidth / Math.max(1, aboveCategories.length);
         const iconSize = 0.7;
         const iconGap = 0.1;
         const aboveRows = state.rowsAbove;
@@ -1045,26 +1278,29 @@
 
         updateExportStatus('Calculating layout metrics…', [
           `Slide width: ${slideWidth} in.`,
-          `Columns: ${state.categories.length}.`,
+          `Columns: ${aboveCategories.length || 1}.`,
           `Above rows: ${aboveRows}, below rows: ${belowRows}.`
         ]);
         await waitForFrame();
 
         updateExportStatus('Placing icons above the line…', [
-          `${state.categories.length} categories detected.`,
+          `${aboveCategories.length} categories detected.`,
           `Icon size: ${iconSize} in.`,
           `Gap: ${iconGap} in.`
         ]);
         await waitForFrame();
 
-        for (const [index, category] of state.categories.entries()) {
+        for (const [index, category] of aboveCategories.entries()) {
           const columnX = leftPadding + columnWidth * index;
           const label = getCategoryLabel(category);
-          const count = Number(category.counts?.above || 0);
-          const iconsPerRow = Math.max(1, Math.ceil(count / aboveRows));
+          const counts = category.counts?.above || { a: 0, b: 0 };
+          const slotsA = getSlotCount(counts.a);
+          const slotsB = getSlotCount(counts.b);
+          const maxSlots = Math.max(slotsA, slotsB);
+          const iconsPerRow = Math.max(1, Math.ceil(maxSlots / aboveRows));
           updateExportStatus('Placing icons above the line…', [
-            `Category ${index + 1} of ${state.categories.length}: ${label}.`,
-            `Icons above: ${count}.`,
+            `Category ${index + 1} of ${aboveCategories.length}: ${label}.`,
+            `Icons above: A ${counts.a}, B ${counts.b}.`,
             `Icons per row: ${iconsPerRow}.`
           ]);
           await waitForFrame();
@@ -1079,12 +1315,19 @@
             color: '4B5563'
           });
 
-          for (let i = 0; i < count; i += 1) {
+          for (let i = 0; i < maxSlots; i += 1) {
             const row = aboveRows - 1 - Math.floor(i / iconsPerRow);
             const col = i % iconsPerRow;
             const x = columnX + col * (iconSize + iconGap) + (columnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
             const y = aboveIconsTop + row * (iconSize + iconGap);
-            slide.addImage({ data: getCategoryImage(category), x, y, w: iconSize, h: iconSize });
+            const fractionA = getSlotFraction(counts.a, i);
+            if (fractionA > 0) {
+              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.a, fractionA), x, y, w: iconSize, h: iconSize });
+            }
+            const fractionB = getSlotFraction(counts.b, i);
+            if (fractionB > 0) {
+              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.b, fractionB), x, y, w: iconSize, h: iconSize });
+            }
           }
         }
 
@@ -1102,7 +1345,7 @@
           line: { color: '111827', width: 2 }
         });
 
-        const belowCategories = state.categories.filter((category) => Number(category.counts?.below || 0) > 0);
+        const belowCategories = state.categories.filter((category) => Math.max(category.counts?.below?.a || 0, category.counts?.below?.b || 0) > 0);
         const belowColumnWidth = usableWidth / Math.max(1, belowCategories.length);
 
         updateExportStatus('Filtering below-line categories…', [
@@ -1120,21 +1363,31 @@
 
         for (const [index, category] of belowCategories.entries()) {
           const columnX = leftPadding + belowColumnWidth * index;
-          const count = Number(category.counts?.below || 0);
-          const iconsPerRow = Math.max(1, Math.ceil(count / belowRows));
+          const counts = category.counts?.below || { a: 0, b: 0 };
+          const slotsA = getSlotCount(counts.a);
+          const slotsB = getSlotCount(counts.b);
+          const maxSlots = Math.max(slotsA, slotsB);
+          const iconsPerRow = Math.max(1, Math.ceil(maxSlots / belowRows));
           updateExportStatus('Placing icons below the line…', [
             `Category ${index + 1} of ${belowCategories.length}: ${getCategoryLabel(category)}.`,
-            `Icons below: ${count}.`,
+            `Icons below: A ${counts.a}, B ${counts.b}.`,
             `Icons per row: ${iconsPerRow}.`
           ]);
           await waitForFrame();
 
-          for (let i = 0; i < count; i += 1) {
+          for (let i = 0; i < maxSlots; i += 1) {
             const row = Math.floor(i / iconsPerRow);
             const col = i % iconsPerRow;
             const x = columnX + col * (iconSize + iconGap) + (belowColumnWidth - iconsPerRow * (iconSize + iconGap) + iconGap) / 2;
             const y = lineY + belowTopPadding + row * (iconSize + iconGap);
-            slide.addImage({ data: getCategoryImage(category), x, y, w: iconSize, h: iconSize });
+            const fractionA = getSlotFraction(counts.a, i);
+            if (fractionA > 0) {
+              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.a, fractionA), x, y, w: iconSize, h: iconSize });
+            }
+            const fractionB = getSlotFraction(counts.b, i);
+            if (fractionB > 0) {
+              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.b, fractionB), x, y, w: iconSize, h: iconSize });
+            }
           }
 
           const belowLabelY = lineY + belowTopPadding + belowRows * (iconSize + iconGap) + 0.1;
@@ -1175,7 +1428,11 @@
 
     document.getElementById('exportPpt').addEventListener('click', exportToPpt);
     document.getElementById('add-category').addEventListener('click', () => {
-      state.categories.push(normalizeCategory({ label: 'New Category', counts: { above: 0, below: 0 }, image: defaultImage }));
+      state.categories.push(normalizeCategory({
+        label: 'New Category',
+        counts: { above: { a: 0, b: 0 }, below: { a: 0, b: 0 } },
+        iconId: iconLibrary[0].id
+      }));
       renderControls();
       renderFigure();
       saveDraft();
