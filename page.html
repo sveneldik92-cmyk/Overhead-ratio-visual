@@ -92,10 +92,43 @@
       margin-bottom: 0;
     }
 
+    .card__header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .card__hint {
       font-size: 12px;
       color: var(--muted);
       margin-bottom: 16px;
+    }
+
+    .card__body {
+      display: grid;
+      gap: 12px;
+    }
+
+    .card__toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card__toggle-icon {
+      width: 12px;
+      height: 12px;
+      border: 1.5px solid currentColor;
+      border-top: 0;
+      border-left: 0;
+      transform: rotate(45deg);
+      transition: transform 0.2s ease;
+      margin-top: -2px;
+    }
+
+    .card__toggle[aria-expanded="false"] .card__toggle-icon {
+      transform: rotate(-135deg);
+      margin-top: 2px;
     }
 
     .grid {
@@ -600,62 +633,102 @@
       </header>
 
       <section class="card">
-        <h2>Product Labels</h2>
-        <p class="card__hint">Rename Product A and Product B in the legend, tables, and previews.</p>
-        <div class="grid grid--products">
-          <label class="field">
-            <span>Product A label</span>
-            <input type="text" id="product-label-a" value="Product A">
-          </label>
-          <label class="field">
-            <span>Product B label</span>
-            <input type="text" id="product-label-b" value="Product B">
+        <div class="card__header">
+          <h2>Product Labels</h2>
+          <button class="ghost card__toggle" type="button" aria-expanded="true">
+            <span class="card__toggle-label">Collapse</span>
+            <span class="card__toggle-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="card__body">
+          <p class="card__hint">Rename Product A and Product B in the legend, tables, and previews.</p>
+          <div class="grid grid--products">
+            <label class="field">
+              <span>Product A label</span>
+              <input type="text" id="product-label-a" value="Product A">
+            </label>
+            <label class="field">
+              <span>Product B label</span>
+              <input type="text" id="product-label-b" value="Product B">
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
+          <h2>Above the Line Counts</h2>
+          <button class="ghost card__toggle" type="button" aria-expanded="true">
+            <span class="card__toggle-label">Collapse</span>
+            <span class="card__toggle-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="card__body">
+          <p class="card__hint">Choose how many icons appear in each category above the line.</p>
+          <div id="counts-above"></div>
+          <div class="counts-divider" role="presentation"></div>
+          <label class="field field--row">
+            <span>Rows (above the line)</span>
+            <input type="number" min="1" value="1" id="rows-above">
           </label>
         </div>
       </section>
 
       <section class="card">
-        <h2>Above the Line Counts</h2>
-        <p class="card__hint">Choose how many icons appear in each category above the line.</p>
-        <div id="counts-above"></div>
-        <div class="counts-divider" role="presentation"></div>
-        <label class="field field--row">
-          <span>Rows (above the line)</span>
-          <input type="number" min="1" value="1" id="rows-above">
-        </label>
-      </section>
-
-      <section class="card">
-        <h2>Below the Line Counts</h2>
-        <p class="card__hint">Choose how many icons appear in each category below the divider.</p>
-        <div id="counts-below"></div>
-        <div class="counts-divider" role="presentation"></div>
-        <label class="field field--row">
-          <span>Rows (below the line)</span>
-          <input type="number" min="1" value="2" id="rows-below">
-        </label>
+        <div class="card__header">
+          <h2>Below the Line Counts</h2>
+          <button class="ghost card__toggle" type="button" aria-expanded="true">
+            <span class="card__toggle-label">Collapse</span>
+            <span class="card__toggle-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="card__body">
+          <p class="card__hint">Choose how many icons appear in each category below the divider.</p>
+          <div id="counts-below"></div>
+          <div class="counts-divider" role="presentation"></div>
+          <label class="field field--row">
+            <span>Rows (below the line)</span>
+            <input type="number" min="1" value="2" id="rows-below">
+          </label>
+        </div>
       </section>
 
       <section class="card">
         <div class="card__header">
           <h2>Stick Figure Library &amp; Labels</h2>
-          <button class="ghost" id="add-category" type="button">Add Label</button>
+          <div class="card__header-actions">
+            <button class="ghost" id="add-category" type="button">Add Label</button>
+            <button class="ghost card__toggle" type="button" aria-expanded="true">
+              <span class="card__toggle-label">Collapse</span>
+              <span class="card__toggle-icon" aria-hidden="true"></span>
+            </button>
+          </div>
         </div>
-        <p class="card__hint">Choose stick figure icons and edit labels together. Add or remove categories as needed.</p>
-        <div class="grid grid--uploads" id="category-library"></div>
+        <div class="card__body">
+          <p class="card__hint">Choose stick figure icons and edit labels together. Add or remove categories as needed.</p>
+          <div class="grid grid--uploads" id="category-library"></div>
+        </div>
       </section>
 
       <section class="card">
-        <h2>Actions</h2>
-        <div class="actions">
-          <div class="actions__export">
-            <button id="exportPpt" class="secondary" type="button">Export to PowerPoint</button>
-            <div class="export-status" id="exportStatus">
-              <div class="export-status__header">
-                <span class="export-status__message" id="exportStatusMessage">Exporting…</span>
-                <div class="export-status__bar" role="progressbar" aria-valuetext="Exporting"></div>
+        <div class="card__header">
+          <h2>Actions</h2>
+          <button class="ghost card__toggle" type="button" aria-expanded="true">
+            <span class="card__toggle-label">Collapse</span>
+            <span class="card__toggle-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="card__body">
+          <div class="actions">
+            <div class="actions__export">
+              <button id="exportPpt" class="secondary" type="button">Export to PowerPoint</button>
+              <div class="export-status" id="exportStatus">
+                <div class="export-status__header">
+                  <span class="export-status__message" id="exportStatusMessage">Exporting…</span>
+                  <div class="export-status__bar" role="progressbar" aria-valuetext="Exporting"></div>
+                </div>
+                <ul class="export-status__details" id="exportStatusDetails"></ul>
               </div>
-              <ul class="export-status__details" id="exportStatusDetails"></ul>
             </div>
           </div>
         </div>
@@ -1292,6 +1365,28 @@
       };
     };
 
+    const setCardToggleState = (toggleButton, body, isExpanded) => {
+      toggleButton.setAttribute('aria-expanded', String(isExpanded));
+      body.hidden = !isExpanded;
+      const label = toggleButton.querySelector('.card__toggle-label');
+      if (label) {
+        label.textContent = isExpanded ? 'Collapse' : 'Expand';
+      }
+    };
+
+    const setupCardToggles = () => {
+      document.querySelectorAll('.card').forEach((card) => {
+        const toggleButton = card.querySelector('.card__toggle');
+        const body = card.querySelector('.card__body');
+        if (!toggleButton || !body) return;
+        setCardToggleState(toggleButton, body, true);
+        toggleButton.addEventListener('click', () => {
+          const isExpanded = toggleButton.getAttribute('aria-expanded') === 'true';
+          setCardToggleState(toggleButton, body, !isExpanded);
+        });
+      });
+    };
+
     const renderAbove = () => {
       const container = document.getElementById('figure-above');
       container.innerHTML = '';
@@ -1663,6 +1758,7 @@
       window.location.reload();
     });
 
+    setupCardToggles();
     loadDraft();
     renderControls();
     renderFigure();
