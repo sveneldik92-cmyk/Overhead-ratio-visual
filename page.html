@@ -107,6 +107,10 @@
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     }
 
+    .grid--products {
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
     .counts-table {
       width: 100%;
       border-collapse: collapse;
@@ -226,6 +230,28 @@
       font-size: 13px;
       height: 32px;
       background: #fff;
+    }
+
+    .upload__custom {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 8px;
+    }
+
+    .upload__file {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .upload__file-label {
+      font-size: 11px;
+      color: var(--muted);
     }
 
     .upload input[type="file"] {
@@ -574,6 +600,21 @@
       </header>
 
       <section class="card">
+        <h2>Product Labels</h2>
+        <p class="card__hint">Rename Product A and Product B in the legend, tables, and previews.</p>
+        <div class="grid grid--products">
+          <label class="field">
+            <span>Product A label</span>
+            <input type="text" id="product-label-a" value="Product A">
+          </label>
+          <label class="field">
+            <span>Product B label</span>
+            <input type="text" id="product-label-b" value="Product B">
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
         <h2>Above the Line Counts</h2>
         <p class="card__hint">Choose how many icons appear in each category above the line.</p>
         <div id="counts-above"></div>
@@ -627,11 +668,11 @@
         <div class="legend">
           <div class="legend__item">
             <span class="legend__swatch legend__swatch--a" aria-hidden="true"></span>
-            <span>Product A</span>
+            <span id="legend-label-a">Product A</span>
           </div>
           <div class="legend__item">
             <span class="legend__swatch legend__swatch--b" aria-hidden="true"></span>
-            <span>Product B</span>
+            <span id="legend-label-b">Product B</span>
           </div>
         </div>
       </header>
@@ -652,6 +693,11 @@
     const productColors = {
       a: '#111827',
       b: '#9ca3af'
+    };
+
+    const defaultProductLabels = {
+      a: 'Product A',
+      b: 'Product B'
     };
 
     const iconLibrary = [
@@ -745,7 +791,8 @@
     const state = {
       categories: structuredClone(defaultCategories),
       rowsAbove: 1,
-      rowsBelow: 2
+      rowsBelow: 2,
+      productLabels: structuredClone(defaultProductLabels)
     };
 
     const draftKey = 'overhead-ratio-draft-v2';
@@ -777,7 +824,11 @@
       id: category.id || `category-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       label: category.label || 'New Category',
       counts: normalizeCounts(category.counts),
-      iconId: iconLibrary.some((icon) => icon.id === category.iconId) ? category.iconId : iconLibrary[0].id
+      iconId: iconLibrary.some((icon) => icon.id === category.iconId) ? category.iconId : iconLibrary[0].id,
+      customIcons: {
+        a: typeof category.customIcons?.a === 'string' ? category.customIcons.a : null,
+        b: typeof category.customIcons?.b === 'string' ? category.customIcons.b : null
+      }
     });
 
     const getIconDefinition = (iconId) => iconLibrary.find((icon) => icon.id === iconId) || iconLibrary[0];
@@ -811,11 +862,47 @@
 
     const getIconDataUrl = (iconId, color, fraction = 1) => svgToDataUrl(buildIconSvg(iconId, color, fraction));
 
+    const buildImageSvg = (imageDataUrl, fraction = 1) => {
+      const safeFraction = Math.min(1, Math.max(0, fraction));
+      if (safeFraction >= 0.999) {
+        return `
+          <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <image href="${imageDataUrl}" x="0" y="0" width="120" height="120" preserveAspectRatio="xMidYMid meet" />
+          </svg>
+        `;
+      }
+      const clipHeight = 120 * safeFraction;
+      const clipY = 120 - clipHeight;
+      return `
+        <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <clipPath id="clip">
+              <rect x="0" y="${clipY}" width="120" height="${clipHeight}" />
+            </clipPath>
+          </defs>
+          <g clip-path="url(#clip)">
+            <image href="${imageDataUrl}" x="0" y="0" width="120" height="120" preserveAspectRatio="xMidYMid meet" />
+          </g>
+        </svg>
+      `;
+    };
+
+    const getCategoryIconDataUrl = (category, productKey, fraction = 1) => {
+      const customIcon = category.customIcons?.[productKey];
+      if (customIcon) {
+        return svgToDataUrl(buildImageSvg(customIcon, fraction));
+      }
+      return getIconDataUrl(category.iconId, productColors[productKey], fraction);
+    };
+
+    const getProductLabel = (key) => state.productLabels?.[key]?.trim() || defaultProductLabels[key];
+
     const saveDraft = () => {
       const draft = {
         categories: state.categories,
         rowsAbove: state.rowsAbove,
-        rowsBelow: state.rowsBelow
+        rowsBelow: state.rowsBelow,
+        productLabels: state.productLabels
       };
       localStorage.setItem(draftKey, JSON.stringify(draft));
     };
@@ -829,6 +916,10 @@
           state.categories = draft.categories.map(normalizeCategory);
           state.rowsAbove = Number(draft.rowsAbove ?? 1);
           state.rowsBelow = Number(draft.rowsBelow ?? 2);
+          state.productLabels = {
+            a: draft.productLabels?.a ?? defaultProductLabels.a,
+            b: draft.productLabels?.b ?? defaultProductLabels.b
+          };
           return;
         }
 
@@ -869,16 +960,20 @@
           state.rowsAbove = Number(draft.counts?.rowsAbove ?? 1);
           state.rowsBelow = Number(draft.counts?.rowsBelow ?? 2);
         }
+        state.productLabels = {
+          a: draft.productLabels?.a ?? defaultProductLabels.a,
+          b: draft.productLabels?.b ?? defaultProductLabels.b
+        };
       } catch (error) {
         console.warn('Draft load failed', error);
       }
     };
 
-    const createIcon = (iconId, label, productKey, fraction = 1) => {
+    const createIcon = (category, label, productKey, fraction = 1) => {
       const wrapper = document.createElement('div');
       wrapper.className = `icon-card icon-card--product-${productKey}`;
       const img = document.createElement('img');
-      img.src = getIconDataUrl(iconId, productColors[productKey], fraction);
+      img.src = getCategoryIconDataUrl(category, productKey, fraction);
       img.alt = label;
       wrapper.appendChild(img);
       return wrapper;
@@ -902,7 +997,7 @@
       return 0;
     };
 
-    const buildIconRows = (counts, rows, iconId, label, fillFromBottom) => {
+    const buildIconRows = (counts, rows, category, label, fillFromBottom) => {
       const safeRows = Math.max(1, rows);
       const slotsA = getSlotCount(counts.a);
       const slotsB = getSlotCount(counts.b);
@@ -922,12 +1017,12 @@
 
         const fractionA = getSlotFraction(counts.a, i);
         if (fractionA > 0) {
-          cell.appendChild(createIcon(iconId, label, 'a', fractionA));
+          cell.appendChild(createIcon(category, label, 'a', fractionA));
         }
 
         const fractionB = getSlotFraction(counts.b, i);
         if (fractionB > 0) {
-          cell.appendChild(createIcon(iconId, label, 'b', fractionB));
+          cell.appendChild(createIcon(category, label, 'b', fractionB));
         }
 
         rowElements[rowIndex].appendChild(cell);
@@ -947,8 +1042,8 @@
       const headerRow = document.createElement('tr');
       headerRow.innerHTML = `
         <th>Category</th>
-        <th>Product A</th>
-        <th>Product B</th>
+        <th>${getProductLabel('a')}</th>
+        <th>${getProductLabel('b')}</th>
       `;
       header.appendChild(headerRow);
       table.appendChild(header);
@@ -1054,6 +1149,54 @@
           saveDraft();
         });
 
+        const customIconWrap = document.createElement('div');
+        customIconWrap.className = 'upload__custom';
+
+        const buildCustomField = (productKey) => {
+          const field = document.createElement('div');
+          field.className = 'upload__file';
+
+          const label = document.createElement('span');
+          label.className = 'upload__file-label';
+          label.textContent = `${getProductLabel(productKey)} icon`;
+
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.addEventListener('change', () => {
+            const file = input.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+              category.customIcons[productKey] = typeof reader.result === 'string' ? reader.result : null;
+              updatePreview();
+              renderFigure();
+              saveDraft();
+            };
+            reader.readAsDataURL(file);
+          });
+
+          const clearButton = document.createElement('button');
+          clearButton.type = 'button';
+          clearButton.className = 'ghost';
+          clearButton.textContent = 'Clear icon';
+          clearButton.addEventListener('click', () => {
+            category.customIcons[productKey] = null;
+            input.value = '';
+            updatePreview();
+            renderFigure();
+            saveDraft();
+          });
+
+          field.appendChild(label);
+          field.appendChild(input);
+          field.appendChild(clearButton);
+          return field;
+        };
+
+        customIconWrap.appendChild(buildCustomField('a'));
+        customIconWrap.appendChild(buildCustomField('b'));
+
         const footer = document.createElement('div');
         footer.className = 'upload__footer';
         footer.appendChild(removeButton);
@@ -1065,9 +1208,9 @@
         previewA.className = 'preview__item';
         const previewAIcon = document.createElement('img');
         previewAIcon.className = 'preview__icon';
-        previewAIcon.alt = 'Product A preview';
+        previewAIcon.alt = `${getProductLabel('a')} preview`;
         const previewALabel = document.createElement('span');
-        previewALabel.textContent = 'Product A';
+        previewALabel.textContent = getProductLabel('a');
         previewA.appendChild(previewAIcon);
         previewA.appendChild(previewALabel);
 
@@ -1075,9 +1218,9 @@
         previewB.className = 'preview__item';
         const previewBIcon = document.createElement('img');
         previewBIcon.className = 'preview__icon';
-        previewBIcon.alt = 'Product B preview';
+        previewBIcon.alt = `${getProductLabel('b')} preview`;
         const previewBLabel = document.createElement('span');
-        previewBLabel.textContent = 'Product B';
+        previewBLabel.textContent = getProductLabel('b');
         previewB.appendChild(previewBIcon);
         previewB.appendChild(previewBLabel);
 
@@ -1085,13 +1228,14 @@
         preview.appendChild(previewB);
 
         const updatePreview = () => {
-          previewAIcon.src = getIconDataUrl(category.iconId, productColors.a);
-          previewBIcon.src = getIconDataUrl(category.iconId, productColors.b);
+          previewAIcon.src = getCategoryIconDataUrl(category, 'a');
+          previewBIcon.src = getCategoryIconDataUrl(category, 'b');
         };
         updatePreview();
 
         card.appendChild(header);
         card.appendChild(iconSelect);
+        card.appendChild(customIconWrap);
         card.appendChild(preview);
         card.appendChild(footer);
         container.appendChild(card);
@@ -1102,6 +1246,33 @@
       renderCountsSection('counts-above', 'above');
       renderCountsSection('counts-below', 'below');
       renderCategoryLibrary();
+
+      const productLabelAInput = document.getElementById('product-label-a');
+      const productLabelBInput = document.getElementById('product-label-b');
+      const legendLabelA = document.getElementById('legend-label-a');
+      const legendLabelB = document.getElementById('legend-label-b');
+
+      if (productLabelAInput && productLabelBInput) {
+        productLabelAInput.value = getProductLabel('a');
+        productLabelBInput.value = getProductLabel('b');
+        productLabelAInput.oninput = () => {
+          state.productLabels.a = productLabelAInput.value;
+          if (legendLabelA) legendLabelA.textContent = getProductLabel('a');
+          renderControls();
+          renderFigure();
+          saveDraft();
+        };
+        productLabelBInput.oninput = () => {
+          state.productLabels.b = productLabelBInput.value;
+          if (legendLabelB) legendLabelB.textContent = getProductLabel('b');
+          renderControls();
+          renderFigure();
+          saveDraft();
+        };
+      }
+
+      if (legendLabelA) legendLabelA.textContent = getProductLabel('a');
+      if (legendLabelB) legendLabelB.textContent = getProductLabel('b');
 
       const rowsAboveInput = document.getElementById('rows-above');
       const rowsBelowInput = document.getElementById('rows-below');
@@ -1139,7 +1310,7 @@
 
         const iconGrid = document.createElement('div');
         iconGrid.className = 'figure__icon-grid';
-        const iconRows = buildIconRows(category.counts.above, rowsAbove, category.iconId, label, true);
+        const iconRows = buildIconRows(category.counts.above, rowsAbove, category, label, true);
         iconRows.forEach((row) => iconGrid.appendChild(row));
 
         column.appendChild(iconGrid);
@@ -1160,7 +1331,7 @@
         const iconGrid = document.createElement('div');
         iconGrid.className = 'figure__icon-grid';
         const label = getCategoryLabel(category);
-        const iconRows = buildIconRows(category.counts.below, rowsBelow, category.iconId, label, false);
+        const iconRows = buildIconRows(category.counts.below, rowsBelow, category, label, false);
         iconRows.forEach((row) => iconGrid.appendChild(row));
 
         column.appendChild(iconGrid);
@@ -1372,11 +1543,11 @@
             const y = aboveIconsTop + row * (iconSize + iconGap);
             const fractionB = getSlotFraction(counts.b, i);
             if (fractionB > 0) {
-              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.b, fractionB), x, y, w: iconSize, h: iconSize });
+              slide.addImage({ data: getCategoryIconDataUrl(category, 'b', fractionB), x, y, w: iconSize, h: iconSize });
             }
             const fractionA = getSlotFraction(counts.a, i);
             if (fractionA > 0) {
-              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.a, fractionA), x, y, w: iconSize, h: iconSize });
+              slide.addImage({ data: getCategoryIconDataUrl(category, 'a', fractionA), x, y, w: iconSize, h: iconSize });
             }
           }
         }
@@ -1432,11 +1603,11 @@
             const y = lineY + belowTopPadding + row * (iconSize + iconGap);
             const fractionB = getSlotFraction(counts.b, i);
             if (fractionB > 0) {
-              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.b, fractionB), x, y, w: iconSize, h: iconSize });
+              slide.addImage({ data: getCategoryIconDataUrl(category, 'b', fractionB), x, y, w: iconSize, h: iconSize });
             }
             const fractionA = getSlotFraction(counts.a, i);
             if (fractionA > 0) {
-              slide.addImage({ data: getIconDataUrl(category.iconId, productColors.a, fractionA), x, y, w: iconSize, h: iconSize });
+              slide.addImage({ data: getCategoryIconDataUrl(category, 'a', fractionA), x, y, w: iconSize, h: iconSize });
             }
           }
 
