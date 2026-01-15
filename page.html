@@ -17,6 +17,8 @@
       --accent-strong: #1d4ed8;
       --accent-soft: #e0edff;
       --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      --canvas-width: 100%;
+      --canvas-height: auto;
     }
 
     * {
@@ -546,6 +548,9 @@
       justify-content: flex-start;
       position: relative;
       overflow: hidden;
+      width: var(--canvas-width);
+      height: var(--canvas-height);
+      max-width: 100%;
     }
 
     .figure::before {
@@ -566,12 +571,13 @@
     }
 
     .figure__above {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      display: flex;
+      flex-wrap: nowrap;
       gap: 20px;
       align-items: stretch;
       min-height: 0;
       padding-bottom: 4px;
+      overflow-x: auto;
     }
 
     .figure__column {
@@ -580,6 +586,7 @@
       align-items: center;
       gap: 12px;
       height: 100%;
+      flex: 0 0 160px;
     }
 
     .figure__column-title {
@@ -640,6 +647,10 @@
       box-shadow: inset 0 1px 4px rgba(148, 163, 184, 0.2);
     }
 
+    .figure__icon-cell--custom::before {
+      display: none;
+    }
+
     .figure__line {
       height: 3px;
       background: linear-gradient(90deg, rgba(17, 24, 39, 0.8), rgba(37, 99, 235, 0.9), rgba(17, 24, 39, 0.8));
@@ -649,12 +660,13 @@
     }
 
     .figure__below {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      display: flex;
+      flex-wrap: nowrap;
       gap: 20px;
       padding-top: 4px;
       align-items: start;
       justify-items: center;
+      overflow-x: auto;
     }
 
     .figure__below .figure__column-title {
@@ -827,6 +839,29 @@
 
       <section class="card">
         <div class="card__header">
+          <h2>Canvas Size</h2>
+          <button class="ghost card__toggle" type="button" aria-expanded="true">
+            <span class="card__toggle-label">Collapse</span>
+            <span class="card__toggle-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="card__body">
+          <p class="card__hint">Set the canvas size for the live preview.</p>
+          <div class="grid grid--products">
+            <label class="field">
+              <span>Canvas width (px)</span>
+              <input type="number" min="400" max="2400" step="10" id="canvas-width">
+            </label>
+            <label class="field">
+              <span>Canvas height (px)</span>
+              <input type="number" min="400" max="2000" step="10" id="canvas-height">
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
           <h2>Actions</h2>
           <button class="ghost card__toggle" type="button" aria-expanded="true">
             <span class="card__toggle-label">Collapse</span>
@@ -981,7 +1016,9 @@
       categories: structuredClone(defaultCategories),
       rowsAbove: 1,
       rowsBelow: 2,
-      productLabels: structuredClone(defaultProductLabels)
+      productLabels: structuredClone(defaultProductLabels),
+      canvasWidth: 1100,
+      canvasHeight: 700
     };
 
     const draftKey = 'overhead-ratio-draft-v2';
@@ -1051,12 +1088,23 @@
 
     const getIconDataUrl = (iconId, color, fraction = 1) => svgToDataUrl(buildIconSvg(iconId, color, fraction));
 
-    const buildImageSvg = (imageDataUrl, fraction = 1) => {
+    const buildImageSvg = (imageDataUrl, color, fraction = 1) => {
       const safeFraction = Math.min(1, Math.max(0, fraction));
+      const maskId = `mask-${Math.random().toString(36).slice(2, 9)}`;
+      const clipId = `clip-${Math.random().toString(36).slice(2, 9)}`;
+      const mask = `
+        <mask id="${maskId}" maskUnits="userSpaceOnUse">
+          <image href="${imageDataUrl}" x="0" y="0" width="120" height="120" preserveAspectRatio="xMidYMid meet" />
+        </mask>
+      `;
+      const colorRect = `<rect width="120" height="120" fill="${color}" mask="url(#${maskId})" />`;
       if (safeFraction >= 0.999) {
         return `
           <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-            <image href="${imageDataUrl}" x="0" y="0" width="120" height="120" preserveAspectRatio="xMidYMid meet" />
+            <defs>
+              ${mask}
+            </defs>
+            ${colorRect}
           </svg>
         `;
       }
@@ -1065,12 +1113,13 @@
       return `
         <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <clipPath id="clip">
+            ${mask}
+            <clipPath id="${clipId}">
               <rect x="0" y="${clipY}" width="120" height="${clipHeight}" />
             </clipPath>
           </defs>
-          <g clip-path="url(#clip)">
-            <image href="${imageDataUrl}" x="0" y="0" width="120" height="120" preserveAspectRatio="xMidYMid meet" />
+          <g clip-path="url(#${clipId})">
+            ${colorRect}
           </g>
         </svg>
       `;
@@ -1079,7 +1128,7 @@
     const getCategoryIconDataUrl = (category, productKey, fraction = 1) => {
       const customIcon = category.customIcons?.[productKey];
       if (customIcon) {
-        return svgToDataUrl(buildImageSvg(customIcon, fraction));
+        return svgToDataUrl(buildImageSvg(customIcon, productColors[productKey], fraction));
       }
       return getIconDataUrl(category.iconId, productColors[productKey], fraction);
     };
@@ -1091,7 +1140,9 @@
         categories: state.categories,
         rowsAbove: state.rowsAbove,
         rowsBelow: state.rowsBelow,
-        productLabels: state.productLabels
+        productLabels: state.productLabels,
+        canvasWidth: state.canvasWidth,
+        canvasHeight: state.canvasHeight
       };
       localStorage.setItem(draftKey, JSON.stringify(draft));
     };
@@ -1109,6 +1160,8 @@
             a: draft.productLabels?.a ?? defaultProductLabels.a,
             b: draft.productLabels?.b ?? defaultProductLabels.b
           };
+          state.canvasWidth = Number(draft.canvasWidth ?? state.canvasWidth);
+          state.canvasHeight = Number(draft.canvasHeight ?? state.canvasHeight);
           return;
         }
 
@@ -1153,6 +1206,8 @@
           a: draft.productLabels?.a ?? defaultProductLabels.a,
           b: draft.productLabels?.b ?? defaultProductLabels.b
         };
+        state.canvasWidth = Number(draft.canvasWidth ?? state.canvasWidth);
+        state.canvasHeight = Number(draft.canvasHeight ?? state.canvasHeight);
       } catch (error) {
         console.warn('Draft load failed', error);
       }
@@ -1201,15 +1256,16 @@
       for (let i = 0; i < maxSlots; i += 1) {
         const baseRow = Math.floor(i / iconsPerRow);
         const rowIndex = fillFromBottom ? safeRows - 1 - baseRow : baseRow;
-        const cell = document.createElement('div');
-        cell.className = 'figure__icon-cell';
-
         const fractionA = getSlotFraction(counts.a, i);
+        const fractionB = getSlotFraction(counts.b, i);
+        const usesCustomIcon = (fractionA > 0 && category.customIcons?.a) || (fractionB > 0 && category.customIcons?.b);
+        const cell = document.createElement('div');
+        cell.className = usesCustomIcon ? 'figure__icon-cell figure__icon-cell--custom' : 'figure__icon-cell';
+
         if (fractionA > 0) {
           cell.appendChild(createIcon(category, label, 'a', fractionA));
         }
 
-        const fractionB = getSlotFraction(counts.b, i);
         if (fractionB > 0) {
           cell.appendChild(createIcon(category, label, 'b', fractionB));
         }
@@ -1465,6 +1521,8 @@
 
       const rowsAboveInput = document.getElementById('rows-above');
       const rowsBelowInput = document.getElementById('rows-below');
+      const canvasWidthInput = document.getElementById('canvas-width');
+      const canvasHeightInput = document.getElementById('canvas-height');
       rowsAboveInput.value = state.rowsAbove;
       rowsBelowInput.value = state.rowsBelow;
 
@@ -1479,6 +1537,21 @@
         renderFigure();
         saveDraft();
       };
+
+      if (canvasWidthInput && canvasHeightInput) {
+        canvasWidthInput.value = state.canvasWidth;
+        canvasHeightInput.value = state.canvasHeight;
+        canvasWidthInput.oninput = () => {
+          state.canvasWidth = Math.max(400, Number(canvasWidthInput.value || 400));
+          renderFigure();
+          saveDraft();
+        };
+        canvasHeightInput.oninput = () => {
+          state.canvasHeight = Math.max(400, Number(canvasHeightInput.value || 400));
+          renderFigure();
+          saveDraft();
+        };
+      }
     };
 
     const setCardToggleState = (toggleButton, body, isExpanded) => {
@@ -1557,6 +1630,11 @@
     };
 
     const renderFigure = () => {
+      const figure = document.getElementById('figure');
+      if (figure) {
+        figure.style.setProperty('--canvas-width', `${state.canvasWidth}px`);
+        figure.style.setProperty('--canvas-height', `${state.canvasHeight}px`);
+      }
       renderAbove();
       renderBelow();
       saveDraft();
